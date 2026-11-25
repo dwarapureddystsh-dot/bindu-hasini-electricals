@@ -1883,7 +1883,7 @@ async function loadInvoiceHistory() {
   const { data, error } = await supabase
     .from('documents')
     .select('id,customer_id,document_number,document_date,total_amount,status')
-    .eq('document_type', 'INVOICE')
+    .eq('document_type', 'invoice')
     .order('created_at', { ascending: false });
 
   if (error) {
