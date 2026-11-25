@@ -1,4 +1,4 @@
-
+8
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -888,7 +888,12 @@ function renderInventory() {
     del.textContent = item.is_active === false ? 'Activate' : 'Deactivate';
 del.className = 'danger';
 
-del.onclick = () => {
+del.onclick = () => { 
+      action.append(edit, del);
+    tr.appendChild(action);
+    $('inventoryRows').appendChild(tr);
+  });
+}
   if (item.is_active === false) {
     activateInventory(item.id);
   } else {
