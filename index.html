@@ -90,6 +90,43 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 </table>
 </div>
 </section>
+<section class="panel">
+  <h3>Enquiries Management</h3>
+
+  <form id="enquiryForm">
+    <input id="enqCustomer" placeholder="Customer Name" required>
+    <input id="enqSubject" placeholder="Enquiry Subject" required>
+    <input id="enqMachine" placeholder="Machine Name">
+    <input id="enqDescription" placeholder="Problem Description">
+
+    <select id="enqStatus">
+      <option value="New">New</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Completed">Completed</option>
+    </select>
+
+    <button type="submit">Save Enquiry</button>
+  </form>
+
+  <p id="enqMessage"></p>
+
+  <h3>Enquiry List</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th>Subject</th>
+          <th>Machine</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="enquiryRows">
+        <tr><td colspan="4">No enquiries yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 </main>
 
 <footer>BINDU HASINI ELECTRICALS • Vijayawada, Andhra Pradesh</footer>
@@ -296,6 +333,92 @@ $('logout').addEventListener('click',async () => {
 
 const {data: sessionData} = await supabase.auth.getSession();
 if (sessionData.session) await showDashboard(sessionData.session.user);
+async function loadEnquiries() {
+  const { data, error } = await supabase
+    .from('enquiries')
+    .select('id,customer_id,subject,description,status,created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    $('enquiryRows').textContent = 'Load failed: ' + error.message;
+    return;
+  }
+
+  $('enquiryRows').replaceChildren();
+
+  if (!data.length) {
+    $('enquiryRows').textContent = 'No enquiries yet.';
+    return;
+  }
+
+  data.forEach(e => {
+    const customer = customerData.find(c => c.id === e.customer_id);
+    const tr = document.createElement('tr');
+
+    [customer?.name || 'Unknown', e.subject, e.description || '-', e.status]
+      .forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+
+    $('enquiryRows').appendChild(tr);
+  });
+}
+
+$('enquiryForm').addEventListener('submit', async event => {
+  event.preventDefault();
+
+  const customerName = $('enqCustomer').value.trim().toLowerCase();
+  const customer = customerData.find(
+    c => (c.name || '').trim().toLowerCase() === customerName
+  );
+
+  if (!customer) {
+    $('enqMessage').textContent =
+      'Customer not found. First add this customer in Customers Management.';
+    return;
+  }
+
+  const machine = $('enqMachine').value.trim();
+  const problem = $('enqDescription').value.trim();
+
+  const description = [
+    machine ? 'Machine: ' + machine : '',
+    problem ? 'Problem: ' + problem : ''
+  ].filter(Boolean).join('\n');
+
+  const { error } = await supabase.from('enquiries').insert({
+    customer_id: customer.id,
+    subject: $('enqSubject').value.trim(),
+    description: description || null,
+    status: $('enqStatus').value
+  });
+
+  if (error) {
+    $('enqMessage').textContent = 'Save failed: ' + error.message;
+    return;
+  }
+
+  $('enqMessage').textContent = 'Enquiry added successfully.';
+  $('enquiryForm').reset();
+  await loadEnquiries();
+});
+
+const previousShowDashboard = showDashboard;
+
+showDashboard = async function(user) {
+  await previousShowDashboard(user);
+  if (!$('dashboard').classList.contains('hidden')) {
+    await loadEnquiries();
+  }
+};
+
+const { data: currentSession } = await supabase.auth.getSession();
+if (currentSession.session &&
+    !$('dashboard').classList.contains('hidden')) {
+  await loadEnquiries();
+}
 </script>
 </body>
 </html>
