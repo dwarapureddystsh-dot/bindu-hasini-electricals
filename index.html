@@ -382,6 +382,12 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 
     <label>Invoice Date</label>
     <input id="invoiceDate" type="date" required>
+    
+<label>
+  <input type="checkbox" id="enableInvoiceGST">
+  Enable GST for this Invoice
+</label>
+    
 
     <h4>Invoice Items</h4>
 
@@ -1731,7 +1737,8 @@ function addInvoiceItemRow() {
   taxInput.type = 'number';
   taxInput.min = '0';
   taxInput.step = '0.01';
-  taxInput.value = '18';
+  taxInput.value = $('enableInvoiceGST').checked ? '18' : '0';
+taxInput.disabled = !$('enableInvoiceGST').checked;
   taxInput.required = true;
   taxCell.appendChild(taxInput);
 
@@ -1804,6 +1811,19 @@ function calculateInvoiceTotal() {
 }
 
 $('addInvoiceItem').addEventListener('click', addInvoiceItemRow);
+  
+$('enableInvoiceGST').addEventListener('change', function() {
+  const gstEnabled = this.checked;
+
+  Array.from($('invoiceItemRows').rows).forEach(tr => {
+    const taxInput = tr.querySelectorAll('input')[2];
+    taxInput.value = gstEnabled ? '18' : '0';
+    taxInput.disabled = !gstEnabled;
+  });
+
+  calculateInvoiceTotal();
+});
+  
 
 $('salesInvoiceForm').addEventListener('submit', async function(e) {
   e.preventDefault();
