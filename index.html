@@ -1140,7 +1140,6 @@ function renderStockHistory() {
   filtered.forEach(m => {
     const item = inventoryData.find(x => x.id === m.item_id);
     const tr = document.createElement('tr');
-
     const values = [
       item?.item_name || 'Unknown Item',
       m.movement_type === 'IN' ? 'Stock In' : 'Stock Out',
@@ -1184,6 +1183,7 @@ if (
 ) {
   await loadStockHistory();
 }
+
 </script>
 </body>
 </html>
