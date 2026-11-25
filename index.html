@@ -1810,7 +1810,10 @@ function calculateInvoiceTotal() {
     (subtotal + taxTotal).toFixed(2);
 }
 
-$('addInvoiceItem').addEventListener('click', addInvoiceItemRow);
+$('addInvoiceItem').addEventListener('click', async function() {
+  await loadInvoiceInventory();
+  addInvoiceItemRow();
+});
   
 $('enableInvoiceGST').addEventListener('change', function() {
   const gstEnabled = this.checked;
