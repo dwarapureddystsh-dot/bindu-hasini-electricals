@@ -172,6 +172,54 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
 </section>
+  <section class="panel">
+  <h3>Inventory Management</h3>
+
+  <form id="inventoryForm">
+    <input id="itemName" placeholder="Item Name" required>
+
+    <input id="itemCategory" placeholder="Category" required>
+
+    <input id="itemQuantity" type="number"
+      placeholder="Stock Quantity" min="0" required>
+
+    <input id="itemUnit" placeholder="Unit (Nos, Kg, Box)" required>
+
+    <input id="itemPurchase" type="number"
+      placeholder="Purchase Price" min="0" step="0.01" required>
+
+    <input id="itemSelling" type="number"
+      placeholder="Selling Price" min="0" step="0.01" required>
+
+    <button type="submit">Save Item</button>
+  </form>
+
+  <p id="inventoryMessage"></p>
+
+  <h3>Inventory List</h3>
+
+  <input id="searchInventory"
+    placeholder="Search items">
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Category</th>
+          <th>Quantity</th>
+          <th>Unit</th>
+          <th>Purchase</th>
+          <th>Selling</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="inventoryRows">
+        <tr><td colspan="7">No inventory items yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  </section>
 </main>
 
 <footer>BINDU HASINI ELECTRICALS • Vijayawada, Andhra Pradesh</footer>
@@ -702,7 +750,7 @@ const error = result.error;
 
 delete $('serviceJobForm').dataset.editingId;
   $('serviceJobForm').reset();
-  await loadServiceJobs();7
+  await loadServiceJobs();
 });
 
 const previousShowDashboardForJobs = showDashboard;
@@ -718,6 +766,173 @@ const { data: jobSession } = await supabase.auth.getSession();
 if (jobSession.session &&
     !$('dashboard').classList.contains('hidden')) {
   await loadServiceJobs();
+}
+  let inventoryData = [];
+
+async function loadInventory() {
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('id,item_name,category,quantity,unit,purchase_price,selling_price,created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    $('inventoryRows').textContent = 'Load failed: ' + error.message;
+    return;
+  }
+
+  inventoryData = data || [];
+  renderInventory();
+}
+
+function renderInventory() {
+  const term = $('searchInventory').value.trim().toLowerCase();
+
+  const filtered = inventoryData.filter(item =>
+    [
+      item.item_name,
+      item.category,
+      item.unit
+    ].join(' ').toLowerCase().includes(term)
+  );
+
+  $('inventoryRows').replaceChildren();
+
+  if (!filtered.length) {
+    $('inventoryRows').innerHTML =
+      '<tr><td colspan="7">No inventory items found.</td></tr>';
+    return;
+  }
+
+  filtered.forEach(item => {
+    const tr = document.createElement('tr');
+
+    [
+      item.item_name,
+      item.category,
+      item.quantity,
+      item.unit,
+      item.purchase_price,
+      item.selling_price
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value ?? '-';
+      tr.appendChild(td);
+    });
+
+    const action = document.createElement('td');
+
+    const edit = document.createElement('button');
+    edit.textContent = 'Edit';
+    edit.onclick = () => editInventory(item.id);
+
+    const del = document.createElement('button');
+    del.textContent = 'Delete';
+    del.className = 'danger';
+    del.onclick = () => deleteInventory(item.id);
+
+    action.append(edit, del);
+    tr.appendChild(action);
+
+    $('inventoryRows').appendChild(tr);
+  });
+}
+
+function editInventory(id) {
+  const item = inventoryData.find(x => x.id === id);
+  if (!item) return;
+
+  $('itemName').value = item.item_name || '';
+  $('itemCategory').value = item.category || '';
+  $('itemQuantity').value = item.quantity ?? 0;
+  $('itemUnit').value = item.unit || '';
+  $('itemPurchase').value = item.purchase_price ?? 0;
+  $('itemSelling').value = item.selling_price ?? 0;
+
+  $('inventoryForm').dataset.editingId = item.id;
+  $('inventoryMessage').textContent =
+    'Editing item. Save to update.';
+}
+
+async function deleteInventory(id) {
+  if (!confirm('Are you sure you want to delete this item?')) return;
+
+  const { error } = await supabase
+    .from('inventory_items')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    $('inventoryMessage').textContent =
+      'Delete failed: ' + error.message;
+    return;
+  }
+
+  $('inventoryMessage').textContent =
+    'Item deleted successfully.';
+
+  await loadInventory();
+}
+
+$('searchInventory').addEventListener('input', renderInventory);
+
+$('inventoryForm').addEventListener('submit', async event => {
+  event.preventDefault();
+
+  const itemData = {
+    item_name: $('itemName').value.trim(),
+    category: $('itemCategory').value.trim(),
+    quantity: Number($('itemQuantity').value),
+    unit: $('itemUnit').value.trim(),
+    purchase_price: Number($('itemPurchase').value),
+    selling_price: Number($('itemSelling').value)
+  };
+
+  const editingId = $('inventoryForm').dataset.editingId;
+
+  let result;
+
+  if (editingId) {
+    result = await supabase
+      .from('inventory_items')
+      .update(itemData)
+      .eq('id', editingId);
+  } else {
+    result = await supabase
+      .from('inventory_items')
+      .insert(itemData);
+  }
+
+  if (result.error) {
+    $('inventoryMessage').textContent =
+      'Save failed: ' + result.error.message;
+    return;
+  }
+
+  $('inventoryMessage').textContent = editingId
+    ? 'Item updated successfully.'
+    : 'Item added successfully.';
+
+  delete $('inventoryForm').dataset.editingId;
+  $('inventoryForm').reset();
+
+  await loadInventory();
+});
+
+const previousShowDashboardForInventory = showDashboard;
+
+showDashboard = async function(user) {
+  await previousShowDashboardForInventory(user);
+
+  if (!$('dashboard').classList.contains('hidden')) {
+    await loadInventory();
+  }
+};
+
+const { data: inventorySession } = await supabase.auth.getSession();
+
+if (inventorySession.session &&
+    !$('dashboard').classList.contains('hidden')) {
+  await loadInventory();
 }
 </script>
 </body>
