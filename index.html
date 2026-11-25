@@ -1074,6 +1074,93 @@ if (
 ) {
   await loadStockItems();
 }
+  let stockHistoryData = [];
+
+async function loadStockHistory() {
+  const { data, error } = await supabase
+    .from('stock_movements')
+    .select('id,item_id,movement_type,quantity,reference_note,created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    $('stockHistoryRows').textContent =
+      'Load failed: ' + error.message;
+    return;
+  }
+
+  stockHistoryData = data || [];
+  renderStockHistory();
+}
+
+function renderStockHistory() {
+  const term = $('searchStockHistory').value.trim().toLowerCase();
+
+  const filtered = stockHistoryData.filter(m => {
+    const item = inventoryData.find(x => x.id === m.item_id);
+
+    return [
+      item?.item_name || '',
+      m.movement_type,
+      m.quantity,
+      m.reference_note || ''
+    ].join(' ').toLowerCase().includes(term);
+  });
+
+  $('stockHistoryRows').replaceChildren();
+
+  if (!filtered.length) {
+    $('stockHistoryRows').innerHTML =
+      '<tr><td colspan="5">No stock history found.</td></tr>';
+    return;
+  }
+
+  filtered.forEach(m => {
+    const item = inventoryData.find(x => x.id === m.item_id);
+    const tr = document.createElement('tr');
+
+    const values = [
+      item?.item_name || 'Unknown Item',
+      m.movement_type === 'IN' ? 'Stock In' : 'Stock Out',
+      m.quantity,
+      m.reference_note || '-',
+      m.created_at
+        ? new Date(m.created_at).toLocaleString('en-IN')
+        : '-'
+    ];
+
+    values.forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    $('stockHistoryRows').appendChild(tr);
+  });
+}
+
+$('searchStockHistory').addEventListener(
+  'input',
+  renderStockHistory
+);
+
+const previousShowDashboardForHistory = showDashboard;
+
+showDashboard = async function(user) {
+  await previousShowDashboardForHistory(user);
+
+  if (!$('dashboard').classList.contains('hidden')) {
+    await loadStockHistory();
+  }
+};
+
+const { data: historySession } = await supabase.auth.getSession();
+
+if (
+  historySession.session &&
+  !$('dashboard').classList.contains('hidden')
+) {
+  await loadStockHistory();
+}
 </script>
 </body>
 </html>
