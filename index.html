@@ -59,6 +59,16 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 <div class="card"><span>Service Jobs</span><strong id="jobCount">--</strong></div>
 <div class="card"><span>Inventory Items</span><strong id="inventoryCount">--</strong></div>
 </div>
+  <div class="grid">
+  <div class="card">
+    <span>Total Stock Quantity</span>
+    <strong id="totalStockCount">0</strong>
+  </div>
+  <div class="card">
+    <span>Low Stock Items</span>
+    <strong id="lowStockCount">0</strong>
+  </div>
+  </div>
 
 <section class="panel">
 <h3>Customers Management</h3>
@@ -840,6 +850,19 @@ async function loadInventory() {
   }
 
   inventoryData = data || [];
+
+const activeItems = inventoryData.filter(item => item.is_active !== false);
+
+const totalStock = activeItems.reduce(
+  (sum, item) => sum + Number(item.quantity || 0), 0
+);
+
+const lowStock = activeItems.filter(
+  item => Number(item.quantity || 0) <= 5
+).length;
+
+$('totalStockCount').textContent = totalStock;
+$('lowStockCount').textContent = lowStock;
   renderInventory();
 }
 
