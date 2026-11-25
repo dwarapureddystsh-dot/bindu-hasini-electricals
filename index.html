@@ -220,6 +220,38 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
   </section>
+  <section class="panel">
+  <h3>Stock In / Stock Out</h3>
+
+  <form id="stockMovementForm">
+    <select id="stockItem" required>
+      <option value="">Select Item</option>
+    </select>
+
+    <select id="stockType" required>
+      <option value="IN">Stock In</option>
+      <option value="OUT">Stock Out</option>
+    </select>
+
+    <input
+      id="stockQuantity"
+      type="number"
+      min="0.01"
+      step="0.01"
+      placeholder="Quantity"
+      required
+    >
+
+    <input
+      id="stockNote"
+      placeholder="Reference / Reason"
+    >
+
+    <button type="submit">Update Stock</button>
+  </form>
+
+  <p id="stockMessage"></p>
+  </section>
 </main>
 
 <footer>BINDU HASINI ELECTRICALS • Vijayawada, Andhra Pradesh</footer>
