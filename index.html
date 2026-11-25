@@ -1689,6 +1689,7 @@ async function loadInvoiceInventory() {
   }
 
   invoiceItemsData = data || [];
+  $('invoiceMessage').textContent = 'Items loaded: ' + invoiceItemsData.length;
 }
 
 function addInvoiceItemRow() {
