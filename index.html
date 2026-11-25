@@ -885,7 +885,7 @@ function renderInventory() {
     edit.onclick = () => editInventory(item.id);
 
     const del = document.createElement('button');
-    del.textContent = 'Delete';
+    del.textContent = 'Deactivate';
     del.className = 'danger';
     del.onclick = () => deleteInventory(item.id);
 
