@@ -330,6 +330,42 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
   </section>
+  <section class="panel">
+  <h3>Supplier Management</h3>
+
+  <form id="supplierForm">
+    <input id="supplierNameManage" placeholder="Supplier Name" required>
+    <input id="supplierPhoneManage" placeholder="Phone Number">
+    <input id="supplierEmailManage" type="email" placeholder="Email">
+    <textarea id="supplierAddressManage" placeholder="Address"></textarea>
+
+    <button type="submit">Save Supplier</button>
+  </form>
+
+  <p id="supplierMessageManage"></p>
+
+  <input
+    id="supplierSearch"
+    placeholder="Search suppliers by name or phone"
+  >
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Supplier</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Address</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="supplierRowsManage">
+        <tr><td colspan="5">No suppliers yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  </section>
 </main>
 
 <footer>BINDU HASINI ELECTRICALS • Vijayawada, Andhra Pradesh</footer>
@@ -1375,6 +1411,162 @@ showDashboard = async function(user) {
   if (!$('dashboard').classList.contains('hidden')) {
     await loadPurchaseItems();
     await loadPurchases();
+  }
+};
+  
+
+let supplierData = [];
+let editingSupplierId = null;
+
+async function loadSuppliers() {
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('id,supplier_name,phone,email,address,created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    $('supplierMessageManage').textContent =
+      'Load failed: ' + error.message;
+    return;
+  }
+
+  supplierData = data || [];
+  renderSuppliers();
+}
+
+function renderSuppliers() {
+  const search = $('supplierSearch').value.toLowerCase();
+  const tbody = $('supplierRowsManage');
+  tbody.innerHTML = '';
+
+  const filtered = supplierData.filter(s =>
+    (s.supplier_name || '').toLowerCase().includes(search) ||
+    (s.phone || '').toLowerCase().includes(search)
+  );
+
+  if (filtered.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5">No suppliers found.</td></tr>';
+    return;
+  }
+
+  filtered.forEach(supplier => {
+    const tr = document.createElement('tr');
+
+    [
+      supplier.supplier_name || '-',
+      supplier.phone || '-',
+      supplier.email || '-',
+      supplier.address || '-'
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    const actionCell = document.createElement('td');
+
+    const edit = document.createElement('button');
+    edit.textContent = 'Edit';
+    edit.onclick = () => editSupplier(supplier.id);
+
+    const del = document.createElement('button');
+    del.textContent = 'Delete';
+    del.className = 'danger';
+    del.onclick = () => deleteSupplier(supplier.id);
+
+    actionCell.appendChild(edit);
+    actionCell.appendChild(del);
+    tr.appendChild(actionCell);
+    tbody.appendChild(tr);
+  });
+}
+
+function editSupplier(id) {
+  const supplier = supplierData.find(s => s.id === id);
+  if (!supplier) return;
+
+  editingSupplierId = id;
+
+  $('supplierNameManage').value = supplier.supplier_name || '';
+  $('supplierPhoneManage').value = supplier.phone || '';
+  $('supplierEmailManage').value = supplier.email || '';
+  $('supplierAddressManage').value = supplier.address || '';
+
+  $('supplierMessageManage').textContent =
+    'Editing supplier. Update details and save.';
+}
+
+async function deleteSupplier(id) {
+  const confirmed = confirm('Delete this supplier?');
+  if (!confirmed) return;
+
+  const { error } = await supabase
+    .from('suppliers')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    $('supplierMessageManage').textContent =
+      'Delete failed. Supplier may have purchase history. ' +
+      error.message;
+    return;
+  }
+
+  $('supplierMessageManage').textContent =
+    'Supplier deleted successfully.';
+
+  await loadSuppliers();
+}
+
+$('supplierForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const supplier = {
+    supplier_name: $('supplierNameManage').value.trim(),
+    phone: $('supplierPhoneManage').value.trim() || null,
+    email: $('supplierEmailManage').value.trim() || null,
+    address: $('supplierAddressManage').value.trim() || null
+  };
+
+  let result;
+
+  if (editingSupplierId) {
+    result = await supabase
+      .from('suppliers')
+      .update(supplier)
+      .eq('id', editingSupplierId);
+  } else {
+    result = await supabase
+      .from('suppliers')
+      .insert(supplier);
+  }
+
+  if (result.error) {
+    $('supplierMessageManage').textContent =
+      'Save failed: ' + result.error.message;
+    return;
+  }
+
+  $('supplierMessageManage').textContent =
+    editingSupplierId
+      ? 'Supplier updated successfully.'
+      : 'Supplier added successfully.';
+
+  editingSupplierId = null;
+  this.reset();
+  await loadSuppliers();
+});
+
+$('supplierSearch').addEventListener('input', renderSuppliers);
+
+const previousShowDashboardForSuppliers = showDashboard;
+
+showDashboard = async function(user) {
+  await previousShowDashboardForSuppliers(user);
+
+  if (!$('dashboard').classList.contains('hidden')) {
+    await loadSuppliers();
   }
 };
   
