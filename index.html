@@ -933,12 +933,6 @@ async function deleteInventory(id) {
   await loadStockItems();
 }
 
-  $('inventoryMessage').textContent =
-    'Item deleted successfully.';
-
-  await loadInventory();
-}
-
 $('searchInventory').addEventListener('input', renderInventory);
 
 $('inventoryForm').addEventListener('submit', async event => {
