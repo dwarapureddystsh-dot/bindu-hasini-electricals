@@ -1251,29 +1251,21 @@ if (
 
 // PURCHASE MANAGEMENT
 
-async function loadPurchaseItems() {
-  const { data, error } = await supabase
-    .from('inventory_items')
-    .select('id,item_name')
-    .eq('is_active', true)
-    .order('item_name');
-
-  if (error) {
-    alert('Items load failed: ' + error.message);
-    return;
-  }
-
+function loadPurchaseItems() {
   const select = $('purchaseItem');
   select.innerHTML = '<option value="">Select Inventory Item</option>';
 
-  (data || []).forEach(item => {
+  const items = (inventoryData || [])
+    .filter(item => item.is_active !== false)
+    .sort((a, b) => a.item_name.localeCompare(b.item_name));
+
+  items.forEach(item => {
     const option = document.createElement('option');
     option.value = item.id;
     option.textContent = item.item_name;
     select.appendChild(option);
   });
-}
-
+}  
 function calculatePurchaseTotal() {
   const quantity = Number($('purchaseQuantity').value || 0);
   const rate = Number($('purchaseRate').value || 0);
