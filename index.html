@@ -111,7 +111,7 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   <p id="enqMessage"></p>
 
   <h3>Enquiry List</h3>
-  <div class="tablewrap">
+  <input id="searchEnquiry" placeholder="Search by customer, subject or machine"><div class="tablewrap">
     <table>
       <thead>
         <tr>
@@ -419,6 +419,50 @@ if (currentSession.session &&
     !$('dashboard').classList.contains('hidden')) {
   await loadEnquiries();
 }
+$('searchEnquiry').addEventListener('input', async function() {
+  const term = this.value.trim().toLowerCase();
+  const { data, error } = await supabase
+    .from('enquiries')
+    .select('id,customer_id,subject,description,status,created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    $('enquiryRows').textContent = 'Search failed: ' + error.message;
+    return;
+  }
+
+  $('enquiryRows').replaceChildren();
+
+  const filtered = data.filter(e => {
+    const customer = customerData.find(c => c.id === e.customer_id);
+    const text = [
+      customer?.name || '',
+      e.subject || '',
+      e.description || '',
+      e.status || ''
+    ].join(' ').toLowerCase();
+
+    return text.includes(term);
+  });
+
+  filtered.forEach(e => {
+    const customer = customerData.find(c => c.id === e.customer_id);
+    const tr = document.createElement('tr');
+
+    [customer?.name || 'Unknown', e.subject, e.description || '-', e.status]
+      .forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+
+    $('enquiryRows').appendChild(tr);
+  });
+
+  if (!filtered.length) {
+    $('enquiryRows').textContent = 'No matching enquiries.';
+  }
+});
 </script>
 </body>
 </html>
