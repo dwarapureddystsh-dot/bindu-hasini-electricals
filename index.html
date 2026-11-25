@@ -966,6 +966,87 @@ if (inventorySession.session &&
     !$('dashboard').classList.contains('hidden')) {
   await loadInventory();
 }
+  async function loadStockItems() {
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('id,item_name')
+    .order('item_name');
+
+  if (error) {
+    $('stockMessage').textContent = 'Load failed: ' + error.message;
+    return;
+  }
+
+  const select = $('stockItem');
+  select.replaceChildren();
+
+  const first = document.createElement('option');
+  first.value = '';
+  first.textContent = 'Select Item';
+  select.appendChild(first);
+
+  (data || []).forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.id;
+    option.textContent = item.item_name;
+    select.appendChild(option);
+  });
+}
+
+$('stockMovementForm').addEventListener('submit', async event => {
+  event.preventDefault();
+
+  const itemId = $('stockItem').value;
+  const movementType = $('stockType').value;
+  const quantity = Number($('stockQuantity').value);
+  const note = $('stockNote').value.trim();
+
+  if (!itemId || !Number.isFinite(quantity) || quantity <= 0) {
+    $('stockMessage').textContent = 'Select item and enter valid quantity.';
+    return;
+  }
+
+  const { error } = await supabase.rpc('record_stock_movement', {
+    p_item_id: itemId,
+    p_movement_type: movementType,
+    p_quantity: quantity,
+    p_reference_note: note || null
+  });
+
+  if (error) {
+    $('stockMessage').textContent = 'Stock update failed: ' + error.message;
+    return;
+  }
+
+  $('stockMessage').textContent =
+    movementType === 'IN'
+      ? 'Stock In successful!'
+      : 'Stock Out successful!';
+
+  $('stockMovementForm').reset();
+
+  await loadInventory();
+  await loadStockItems();
+});
+
+const previousShowDashboardForStockMovement = showDashboard;
+
+showDashboard = async function(user) {
+  await previousShowDashboardForStockMovement(user);
+
+  if (!$('dashboard').classList.contains('hidden')) {
+    await loadStockItems();
+  }
+};
+
+const { data: stockMovementSession } = await supabase.auth.getSession();
+
+if (
+  stockMovementSession.session &&
+  !$('dashboard').classList.contains('hidden')
+) {
+  await loadStockItems();
+}
 </script>
 </body>
 </html>
