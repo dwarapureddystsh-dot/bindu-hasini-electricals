@@ -128,6 +128,49 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
 </section>
+<section class="panel">
+  <h3>Service Jobs Management</h3>
+
+  <form id="serviceJobForm">
+    <input id="jobCustomer" placeholder="Customer Name" required>
+    <input id="jobMachine" placeholder="Machine Name / Model" required>
+    <input id="jobProblem" placeholder="Problem Description" required>
+    <input id="jobEngineer" placeholder="Assigned Engineer">
+    <label>Service Date</label>
+    <input id="jobDate" type="date" required>
+
+    <select id="jobStatus">
+      <option value="Pending">Pending</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Completed">Completed</option>
+    </select>
+
+    <button type="submit">Save Service Job</button>
+  </form>
+
+  <p id="jobMessage"></p>
+
+  <h3>Service Jobs List</h3>
+  <input id="searchJob" placeholder="Search service jobs">
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th>Machine</th>
+          <th>Problem</th>
+          <th>Engineer</th>
+          <th>Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="serviceJobRows">
+        <tr><td colspan="6">No service jobs yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 </main>
 
 <footer>BINDU HASINI ELECTRICALS • Vijayawada, Andhra Pradesh</footer>
@@ -498,6 +541,115 @@ showDashboard = async function(user) {
 };
 const {data: sessionData} = await supabase.auth.getSession();
 if (sessionData.session) await showDashboard(sessionData.session.user);
+let serviceJobData = [];
+
+async function loadServiceJobs() {
+  const { data, error } = await supabase
+    .from('service_jobs')
+    .select('id,customer_id,machine_name,problem_description,assigned_staff,status,scheduled_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    $('serviceJobRows').textContent = 'Load failed: ' + error.message;
+    return;
+  }
+
+  serviceJobData = data || [];
+  renderServiceJobs();
+}
+
+function renderServiceJobs() {
+  const term = $('searchJob').value.trim().toLowerCase();
+
+  const filtered = serviceJobData.filter(job => {
+    const customer = customerData.find(c => c.id === job.customer_id);
+    return [
+      customer?.name || '',
+      job.machine_name || '',
+      job.problem_description || '',
+      job.assigned_staff || '',
+      job.status || ''
+    ].join(' ').toLowerCase().includes(term);
+  });
+
+  $('serviceJobRows').replaceChildren();
+
+  if (!filtered.length) {
+    $('serviceJobRows').innerHTML =
+      '<tr><td colspan="6">No service jobs found.</td></tr>';
+    return;
+  }
+
+  filtered.forEach(job => {
+    const customer = customerData.find(c => c.id === job.customer_id);
+    const tr = document.createElement('tr');
+
+    [
+      customer?.name || 'Unknown',
+      job.machine_name,
+      job.problem_description,
+      job.assigned_staff || '-',
+      job.scheduled_at ? job.scheduled_at.split('T')[0] : '-',
+      job.status
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value || '-';
+      tr.appendChild(td);
+    });
+
+    $('serviceJobRows').appendChild(tr);
+  });
+}
+
+$('searchJob').addEventListener('input', renderServiceJobs);
+
+$('serviceJobForm').addEventListener('submit', async event => {
+  event.preventDefault();
+
+  const customerName = $('jobCustomer').value.trim().toLowerCase();
+  const customer = customerData.find(
+    c => (c.name || '').trim().toLowerCase() === customerName
+  );
+
+  if (!customer) {
+    $('jobMessage').textContent =
+      'Customer not found. First add this customer.';
+    return;
+  }
+
+  const { error } = await supabase.from('service_jobs').insert({
+    customer_id: customer.id,
+    machine_name: $('jobMachine').value.trim(),
+    problem_description: $('jobProblem').value.trim(),
+    assigned_staff: $('jobEngineer').value.trim() || null,
+    scheduled_at: $('jobDate').value,
+    status: $('jobStatus').value
+  });
+
+  if (error) {
+    $('jobMessage').textContent = 'Save failed: ' + error.message;
+    return;
+  }
+
+  $('jobMessage').textContent = 'Service Job added successfully.';
+  $('serviceJobForm').reset();
+  await loadServiceJobs();
+});
+
+const previousShowDashboardForJobs = showDashboard;
+
+showDashboard = async function(user) {
+  await previousShowDashboardForJobs(user);
+  if (!$('dashboard').classList.contains('hidden')) {
+    await loadServiceJobs();
+  }
+};
+
+const { data: jobSession } = await supabase.auth.getSession();
+if (jobSession.session &&
+    !$('dashboard').classList.contains('hidden')) {
+  await loadServiceJobs();
+}
 </script>
 </body>
 </html>
