@@ -1888,7 +1888,7 @@ async function loadInvoiceHistory() {
 
   if (error) {
     $('invoiceHistoryRows').textContent =
-      'Invoice history load failed.';
+      'Invoice history load failed: ' + error.message;
     console.error(error);
     return;
   }
