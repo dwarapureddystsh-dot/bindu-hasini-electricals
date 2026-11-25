@@ -163,10 +163,11 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
           <th>Engineer</th>
           <th>Date</th>
           <th>Status</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="serviceJobRows">
-        <tr><td colspan="6">No service jobs yet.</td></tr>
+        <tr><td colspan="7">No service jobs yet.</td></tr>
       </tbody>
     </table>
   </div>
@@ -255,7 +256,7 @@ function renderCustomers() {
   if (!filtered.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 5;
+    td.colSpan = 7;
     td.textContent = 'No customers found.';
     tr.appendChild(td);
     $('customerRows').appendChild(tr);
@@ -597,12 +598,59 @@ function renderServiceJobs() {
       tr.appendChild(td);
     });
 
+       const action = document.createElement('td');
+
+    const edit = document.createElement('button');
+    edit.textContent = 'Edit';
+    edit.onclick = () => editServiceJob(job.id);
+
+    const del = document.createElement('button');
+    del.textContent = 'Delete';
+    del.className = 'danger';
+    del.onclick = () => deleteServiceJob(job.id);
+
+    action.append(edit, del);
+    tr.appendChild(action);
     $('serviceJobRows').appendChild(tr);
   });
 }
 
 $('searchJob').addEventListener('input', renderServiceJobs);
+function editServiceJob(id) {
+  const job = serviceJobData.find(item => item.id === id);
+  if (!job) return;
 
+  const customer = customerData.find(c => c.id === job.customer_id);
+
+  $('jobCustomer').value = customer?.name || '';
+  $('jobMachine').value = job.machine_name || '';
+  $('jobProblem').value = job.problem_description || '';
+  $('jobEngineer').value = '';
+  $('jobDate').value = job.scheduled_at
+    ? job.scheduled_at.split('T')[0]
+    : '';
+  $('jobStatus').value = job.status || 'Pending';
+
+  $('serviceJobForm').dataset.editingId = job.id;
+  $('jobMessage').textContent = 'Editing service job. Save to update.';
+}
+
+async function deleteServiceJob(id) {
+  if (!confirm('Are you sure you want to delete this service job?')) return;
+
+  const { error } = await supabase
+    .from('service_jobs')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    $('jobMessage').textContent = 'Delete failed: ' + error.message;
+    return;
+  }
+
+  $('jobMessage').textContent = 'Service Job deleted successfully.';
+  await loadServiceJobs();
+    }
 $('serviceJobForm').addEventListener('submit', async event => {
   event.preventDefault();
 
@@ -617,23 +665,44 @@ $('serviceJobForm').addEventListener('submit', async event => {
     return;
   }
 
-  const { error } = await supabase.from('service_jobs').insert({
-    customer_id: customer.id,
-    machine_name: $('jobMachine').value.trim(),
-    problem_description: $('jobProblem').value.trim(),
-    assigned_staff: null,
-    scheduled_at: $('jobDate').value,
-    status: $('jobStatus').value
-  });
+  const editingId = $('serviceJobForm').dataset.editingId;
+
+const jobData = {
+  customer_id: customer.id,
+  machine_name: $('jobMachine').value.trim(),
+  problem_description: $('jobProblem').value.trim(),
+  assigned_staff: null,
+  scheduled_at: $('jobDate').value,
+  status: $('jobStatus').value
+};
+
+let result;
+
+if (editingId) {
+  result = await supabase
+    .from('service_jobs')
+    .update(jobData)
+    .eq('id', editingId);
+} else {
+  result = await supabase
+    .from('service_jobs')
+    .insert(jobData);
+}
+
+const error = result.error;
 
   if (error) {
     $('jobMessage').textContent = 'Save failed: ' + error.message;
     return;
   }
 
-  $('jobMessage').textContent = 'Service Job added successfully.';
+  $('jobMessage').textContent = editingId
+  ? 'Service Job updated successfully.'
+  : 'Service Job added successfully.';
+
+delete $('serviceJobForm').dataset.editingId;
   $('serviceJobForm').reset();
-  await loadServiceJobs();
+  await loadServiceJobs();7
 });
 
 const previousShowDashboardForJobs = showDashboard;
