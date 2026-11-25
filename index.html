@@ -621,7 +621,7 @@ $('serviceJobForm').addEventListener('submit', async event => {
     customer_id: customer.id,
     machine_name: $('jobMachine').value.trim(),
     problem_description: $('jobProblem').value.trim(),
-    assigned_staff: $('jobEngineer').value.trim() || null,
+    assigned_staff: null,
     scheduled_at: $('jobDate').value,
     status: $('jobStatus').value
   });
