@@ -289,6 +289,47 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
   </section>
+  <section class="panel">
+  <h3>Purchase Management</h3>
+
+  <form id="purchaseForm">
+    <input id="supplierName" placeholder="Supplier Name" required>
+    <input id="supplierPhone" placeholder="Supplier Phone">
+    <input id="purchaseInvoice" placeholder="Invoice Number">
+    <label>Purchase Date</label>
+    <input id="purchaseDate" type="date" required>
+
+    <select id="purchaseItem" required>
+      <option value="">Select Inventory Item</option>
+    </select>
+
+    <input id="purchaseQuantity" type="number" min="0.01" step="0.01" placeholder="Quantity" required>
+    <input id="purchaseRate" type="number" min="0" step="0.01" placeholder="Purchase Rate" required>
+
+    <p>Total Amount: ₹<strong id="purchaseTotal">0.00</strong></p>
+
+    <button type="submit">Save Purchase</button>
+  </form>
+
+  <p id="purchaseMessage"></p>
+
+  <h3>Purchase History</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Supplier</th>
+          <th>Invoice</th>
+          <th>Date</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody id="purchaseRows">
+        <tr><td colspan="4">No purchases yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  </section>
 </main>
 
 <footer>BINDU HASINI ELECTRICALS • Vijayawada, Andhra Pradesh</footer>
@@ -1207,6 +1248,144 @@ if (
   await loadStockHistory();
 }
 
+
+// PURCHASE MANAGEMENT
+
+async function loadPurchaseItems() {
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('id,item_name')
+    .eq('is_active', true)
+    .order('item_name');
+
+  if (error) {
+    alert('Items load failed: ' + error.message);
+    return;
+  }
+
+  const select = $('purchaseItem');
+  select.innerHTML = '<option value="">Select Inventory Item</option>';
+
+  (data || []).forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.id;
+    option.textContent = item.item_name;
+    select.appendChild(option);
+  });
+}
+
+function calculatePurchaseTotal() {
+  const quantity = Number($('purchaseQuantity').value || 0);
+  const rate = Number($('purchaseRate').value || 0);
+
+  $('purchaseTotal').textContent =
+    (quantity * rate).toFixed(2);
+}
+
+$('purchaseQuantity').addEventListener('input', calculatePurchaseTotal);
+$('purchaseRate').addEventListener('input', calculatePurchaseTotal);
+
+async function loadPurchases() {
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('id,supplier_id,invoice_number,purchase_date,total_amount')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    $('purchaseRows').textContent = 'Purchase history load failed.';
+    console.error(error);
+    return;
+  }
+
+  const { data: suppliers, error: supplierError } = await supabase
+    .from('suppliers')
+    .select('id,supplier_name');
+
+  if (supplierError) {
+    console.error(supplierError);
+  }
+
+  const supplierMap = {};
+  (suppliers || []).forEach(s => {
+    supplierMap[s.id] = s.supplier_name;
+  });
+
+  const tbody = $('purchaseRows');
+  tbody.innerHTML = '';
+
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4">No purchases yet.</td></tr>';
+    return;
+  }
+
+  data.forEach(purchase => {
+    const tr = document.createElement('tr');
+
+    [
+      supplierMap[purchase.supplier_id] || 'Unknown',
+      purchase.invoice_number || '-',
+      purchase.purchase_date || '-',
+      '₹' + Number(purchase.total_amount || 0).toFixed(2)
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+$('purchaseForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const message = $('purchaseMessage');
+  message.textContent = 'Saving purchase...';
+
+  const { data, error } = await supabase.rpc('record_purchase', {
+    p_supplier_name: $('supplierName').value.trim(),
+    p_supplier_phone: $('supplierPhone').value.trim(),
+    p_invoice_number: $('purchaseInvoice').value.trim(),
+    p_purchase_date: $('purchaseDate').value,
+    p_item_id: $('purchaseItem').value,
+    p_quantity: Number($('purchaseQuantity').value),
+    p_purchase_rate: Number($('purchaseRate').value)
+  });
+
+  if (error) {
+    message.textContent = 'Purchase failed: ' + error.message;
+    return;
+  }
+
+  message.textContent = 'Purchase saved successfully!';
+
+  this.reset();
+  $('purchaseTotal').textContent = '0.00';
+
+  await loadPurchases();
+  await loadPurchaseItems();
+  await loadInventory();
+
+  if (typeof loadStockItems === 'function') {
+    await loadStockItems();
+  }
+
+  if (typeof loadStockHistory === 'function') {
+    await loadStockHistory();
+  }
+});
+
+const previousShowDashboardForPurchases = showDashboard;
+
+showDashboard = async function(user) {
+  await previousShowDashboardForPurchases(user);
+
+  if (!$('dashboard').classList.contains('hidden')) {
+    await loadPurchaseItems();
+    await loadPurchases();
+  }
+};
+  
 </script>
 </body>
 </html>
