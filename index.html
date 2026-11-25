@@ -886,21 +886,21 @@ function renderInventory() {
 
     const del = document.createElement('button');
     del.textContent = item.is_active === false ? 'Activate' : 'Deactivate';
-del.className = 'danger';
+    del.className = 'danger';
 
-del.onclick = () => { 
-      action.append(edit, del);
+    del.onclick = () => {
+      if (item.is_active === false) {
+        activateInventory(item.id);
+      } else {
+        deleteInventory(item.id);
+      }
+    };
+
+    action.append(edit, del);
     tr.appendChild(action);
     $('inventoryRows').appendChild(tr);
   });
 }
-  if (item.is_active === false) {
-    activateInventory(item.id);
-  } else {
-    deleteInventory(item.id);
-  }
-};
-
 function editInventory(id) {
   const item = inventoryData.find(x => x.id === id);
   if (!item) return;
