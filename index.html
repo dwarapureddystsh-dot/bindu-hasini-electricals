@@ -366,6 +366,76 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
   </section>
+  
+<section class="panel">
+  <h3>Sales & Invoice Management</h3>
+
+  <form id="salesInvoiceForm">
+
+    <label>Customer</label>
+    <select id="invoiceCustomer" required>
+      <option value="">Select Customer</option>
+    </select>
+
+    <label>Invoice Number</label>
+    <input id="invoiceNumber" placeholder="Invoice Number" required>
+
+    <label>Invoice Date</label>
+    <input id="invoiceDate" type="date" required>
+
+    <h4>Invoice Items</h4>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Rate</th>
+            <th>GST %</th>
+            <th>Amount</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceItemRows">
+        </tbody>
+      </table>
+    </div>
+
+    <button type="button" id="addInvoiceItem">
+      + Add Item
+    </button>
+
+    <p>Subtotal: ₹<strong id="invoiceSubtotal">0.00</strong></p>
+    <p>GST Amount: ₹<strong id="invoiceTax">0.00</strong></p>
+    <h3>Total: ₹<strong id="invoiceTotal">0.00</strong></h3>
+
+    <button type="submit">Save Invoice</button>
+
+  </form>
+
+  <p id="invoiceMessage"></p>
+
+  <h3>Invoice History</h3>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice No.</th>
+          <th>Customer</th>
+          <th>Date</th>
+          <th>Total</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="invoiceHistoryRows">
+        <tr><td colspan="5">No invoices yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+  
 </main>
 
 <footer>BINDU HASINI ELECTRICALS • Vijayawada, Andhra Pradesh</footer>
@@ -1570,6 +1640,304 @@ showDashboard = async function(user) {
   }
 };
   
+
+let invoiceItemsData = [];
+let customerInvoiceData = [];
+
+async function loadInvoiceCustomers() {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id,name')
+    .order('name');
+
+  if (error) {
+    $('invoiceMessage').textContent =
+      'Customer load failed: ' + error.message;
+    return;
+  }
+
+  customerInvoiceData = data || [];
+
+  const select = $('invoiceCustomer');
+  select.innerHTML = '<option value="">Select Customer</option>';
+
+  customerInvoiceData.forEach(customer => {
+    const option = document.createElement('option');
+    option.value = customer.id;
+    option.textContent = customer.name;
+    select.appendChild(option);
+  });
+}
+
+async function loadInvoiceInventory() {
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('id,item_name,quantity,is_active,selling_price')
+    .eq('is_active', true)
+    .order('item_name');
+
+  if (error) {
+    $('invoiceMessage').textContent =
+      'Inventory load failed: ' + error.message;
+    return;
+  }
+
+  invoiceItemsData = data || [];
+}
+
+function addInvoiceItemRow() {
+  const tbody = $('invoiceItemRows');
+  const tr = document.createElement('tr');
+
+  const itemCell = document.createElement('td');
+  const itemSelect = document.createElement('select');
+  itemSelect.required = true;
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Select Item';
+  itemSelect.appendChild(defaultOption);
+
+  invoiceItemsData.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.id;
+    option.textContent =
+      item.item_name + ' (Stock: ' + item.quantity + ')';
+    itemSelect.appendChild(option);
+  });
+
+  itemCell.appendChild(itemSelect);
+
+  const quantityCell = document.createElement('td');
+  const quantityInput = document.createElement('input');
+  quantityInput.type = 'number';
+  quantityInput.min = '0.01';
+  quantityInput.step = '0.01';
+  quantityInput.placeholder = 'Qty';
+  quantityInput.required = true;
+  quantityCell.appendChild(quantityInput);
+
+  const rateCell = document.createElement('td');
+  const rateInput = document.createElement('input');
+  rateInput.type = 'number';
+  rateInput.min = '0';
+  rateInput.step = '0.01';
+  rateInput.placeholder = 'Rate';
+  rateInput.required = true;
+  rateCell.appendChild(rateInput);
+
+  const taxCell = document.createElement('td');
+  const taxInput = document.createElement('input');
+  taxInput.type = 'number';
+  taxInput.min = '0';
+  taxInput.step = '0.01';
+  taxInput.value = '18';
+  taxInput.required = true;
+  taxCell.appendChild(taxInput);
+
+  const amountCell = document.createElement('td');
+  amountCell.textContent = '0.00';
+
+  const actionCell = document.createElement('td');
+  const removeButton = document.createElement('button');
+  removeButton.type = 'button';
+  removeButton.textContent = 'Remove';
+  removeButton.className = 'danger';
+
+  [itemSelect, quantityInput, rateInput, taxInput].forEach(input => {
+    input.addEventListener('input', calculateInvoiceTotal);
+    input.addEventListener('change', calculateInvoiceTotal);
+  });
+
+  itemSelect.addEventListener('change', () => {
+    const item = invoiceItemsData.find(i => i.id === itemSelect.value);
+    if (item) {
+      rateInput.value = Number(item.selling_price || 0);
+      calculateInvoiceTotal();
+    }
+  });
+
+  removeButton.onclick = () => {
+    tr.remove();
+    calculateInvoiceTotal();
+  };
+
+  actionCell.appendChild(removeButton);
+
+  tr.append(
+    itemCell,
+    quantityCell,
+    rateCell,
+    taxCell,
+    amountCell,
+    actionCell
+  );
+
+  tbody.appendChild(tr);
+  calculateInvoiceTotal();
+}
+
+function calculateInvoiceTotal() {
+  let subtotal = 0;
+  let taxTotal = 0;
+
+  Array.from($('invoiceItemRows').rows).forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const quantity = Number(inputs[0].value || 0);
+    const rate = Number(inputs[1].value || 0);
+    const tax = Number(inputs[2].value || 0);
+
+    const base = quantity * rate;
+    const taxAmount = base * tax / 100;
+
+    subtotal += base;
+    taxTotal += taxAmount;
+
+    tr.cells[4].textContent =
+      (base + taxAmount).toFixed(2);
+  });
+
+  $('invoiceSubtotal').textContent = subtotal.toFixed(2);
+  $('invoiceTax').textContent = taxTotal.toFixed(2);
+  $('invoiceTotal').textContent =
+    (subtotal + taxTotal).toFixed(2);
+}
+
+$('addInvoiceItem').addEventListener('click', addInvoiceItemRow);
+
+$('salesInvoiceForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const message = $('invoiceMessage');
+  const rows = Array.from($('invoiceItemRows').rows);
+
+  if (rows.length === 0) {
+    message.textContent = 'Please add at least one item.';
+    return;
+  }
+
+  const items = [];
+
+  for (const tr of rows) {
+    const itemId = tr.cells[0].querySelector('select').value;
+    const inputs = tr.querySelectorAll('input');
+
+    const quantity = Number(inputs[0].value);
+    const rate = Number(inputs[1].value);
+    const tax = Number(inputs[2].value);
+
+    const inventoryItem = invoiceItemsData.find(
+      item => item.id === itemId
+    );
+
+    if (!inventoryItem || quantity <= 0 || rate < 0 || tax < 0) {
+      message.textContent = 'Please check all invoice item details.';
+      return;
+    }
+
+    items.push({
+      item_id: itemId,
+      quantity: quantity,
+      unit_price: rate,
+      tax_percent: tax
+    });
+  }
+
+  message.textContent = 'Saving invoice...';
+
+  const { data, error } = await supabase.rpc(
+    'record_sales_invoice',
+    {
+      p_customer_id: $('invoiceCustomer').value,
+      p_invoice_number: $('invoiceNumber').value.trim(),
+      p_invoice_date: $('invoiceDate').value,
+      p_items: items
+    }
+  );
+
+  if (error) {
+    message.textContent = 'Invoice failed: ' + error.message;
+    return;
+  }
+
+  message.textContent = 'Invoice saved successfully!';
+
+  this.reset();
+  $('invoiceItemRows').innerHTML = '';
+  calculateInvoiceTotal();
+
+  await loadInvoiceHistory();
+  await loadInvoiceInventory();
+  await loadInventory();
+
+  if (typeof loadStockItems === 'function') {
+    await loadStockItems();
+  }
+
+  if (typeof loadStockHistory === 'function') {
+    await loadStockHistory();
+  }
+});
+
+async function loadInvoiceHistory() {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('id,customer_id,document_number,document_date,total_amount,status')
+    .eq('document_type', 'INVOICE')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    $('invoiceHistoryRows').textContent =
+      'Invoice history load failed.';
+    console.error(error);
+    return;
+  }
+
+  const customerMap = {};
+  customerInvoiceData.forEach(c => {
+    customerMap[c.id] = c.name;
+  });
+
+  const tbody = $('invoiceHistoryRows');
+  tbody.innerHTML = '';
+
+  if (!data || data.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5">No invoices yet.</td></tr>';
+    return;
+  }
+
+  data.forEach(invoice => {
+    const tr = document.createElement('tr');
+
+    [
+      invoice.document_number || '-',
+      customerMap[invoice.customer_id] || 'Customer',
+      invoice.document_date || '-',
+      '₹' + Number(invoice.total_amount || 0).toFixed(2),
+      invoice.status || '-'
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+const previousShowDashboardForInvoices = showDashboard;
+
+showDashboard = async function(user) {
+  await previousShowDashboardForInvoices(user);
+
+  if (!$('dashboard').classList.contains('hidden')) {
+    await loadInvoiceCustomers();
+    await loadInvoiceInventory();
+    await loadInvoiceHistory();
+  }
+};
+    
 </script>
 </body>
 </html>
