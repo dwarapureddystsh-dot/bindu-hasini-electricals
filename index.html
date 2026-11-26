@@ -33,7 +33,9 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   display: block;
 }
 
-@media print {
+@media print {#invoicePrintArea button {
+  display: none !important;
+}
   body * {
     visibility: hidden !important;
   }
