@@ -29,6 +29,50 @@ th{background:#f8fafc}
 .tablewrap{overflow-x:auto}
 .actions{display:flex;flex-wrap:wrap;gap:5px}
 footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
+  #invoicePrintArea {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #invoicePrintArea,
+  #invoicePrintArea * {
+    visibility: visible !important;
+  }
+
+  #invoicePrintArea {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    background: white;
+    color: black;
+    font-family: Arial, sans-serif;
+  }
+
+  #invoicePrintArea h2,
+  #invoicePrintArea h3 {
+    text-align: center;
+  }
+
+  #invoicePrintArea table {
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+
+  #invoicePrintArea th,
+  #invoicePrintArea td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+  }
+}
 </style>
 </head>
 <body>
@@ -1837,7 +1881,55 @@ $('enableInvoiceGST').addEventListener('change', function() {
   calculateInvoiceTotal();
 });
   
+function generateInvoicePrint(invoice) {
+  const printArea = $('invoicePrintArea');
 
+  const itemRows = invoice.items.map(item => `
+    <tr>
+      <td>${item.itemName}</td>
+      <td>${item.quantity}</td>
+      <td>₹${item.rate.toFixed(2)}</td>
+      <td>${item.tax}%</td>
+      <td>₹${item.amount.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const subtotal = invoice.items.reduce(
+    (sum, item) => sum + item.quantity * item.rate, 0
+  );
+
+  const taxTotal = invoice.items.reduce(
+    (sum, item) => sum + (item.quantity * item.rate * item.tax / 100), 0
+  );
+
+  printArea.innerHTML = `
+    <div class="invoice-print">
+      <h2>BINDU HASINI ELECTRICALS</h2>
+      <p>Vijayawada, Andhra Pradesh</p>
+      <p>Phone: 9966798888</p>
+      <hr>
+      <h3>TAX INVOICE</h3>
+      <p>Invoice No: ${invoice.invoiceNumber}</p>
+      <p>Date: ${invoice.invoiceDate}</p>
+      <p>Customer: ${invoice.customerName}</p>
+      <table border="1" cellpadding="8" cellspacing="0" width="100%">
+        <thead>
+          <tr>
+            <th>Item</th><th>Qty</th><th>Rate</th>
+            <th>GST</th><th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+      <p>Subtotal: ₹${subtotal.toFixed(2)}</p>
+      <p>GST: ₹${taxTotal.toFixed(2)}</p>
+      <h3>Total: ₹${(subtotal + taxTotal).toFixed(2)}</h3>
+      <p>Thank you for your business!</p>
+    </div>
+  `;
+
+  window.print();
+}
 $('salesInvoiceForm').addEventListener('submit', async function(e) {
   e.preventDefault();
 
@@ -1848,7 +1940,14 @@ $('salesInvoiceForm').addEventListener('submit', async function(e) {
     message.textContent = 'Please add at least one item.';
     return;
   }
-
+const invoicePrintData = {
+  invoiceNumber: $('invoiceNumber').value.trim(),
+  invoiceDate: $('invoiceDate').value,
+  customerId: $('invoiceCustomer').value,
+  customerName: $('invoiceCustomer').selectedOptions[0].textContent,
+  gstEnabled: $('enableInvoiceGST').checked,
+  items: []
+};
   const items = [];
 
   for (const tr of rows) {
@@ -1867,7 +1966,13 @@ $('salesInvoiceForm').addEventListener('submit', async function(e) {
       message.textContent = 'Please check all invoice item details.';
       return;
     }
-
+invoicePrintData.items.push({
+  itemName: inventoryItem.item_name,
+  quantity: quantity,
+  rate: rate,
+  tax: tax,
+  amount: quantity * rate * (1 + tax / 100)
+});
     items.push({
       item_id: itemId,
       quantity: quantity,
@@ -1894,6 +1999,7 @@ $('salesInvoiceForm').addEventListener('submit', async function(e) {
   }
 
   message.textContent = 'Invoice saved successfully!';
+  generateInvoicePrint(invoicePrintData);
 
   this.reset();
   $('invoiceItemRows').innerHTML = '';
