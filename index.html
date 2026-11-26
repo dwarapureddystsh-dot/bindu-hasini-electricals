@@ -1928,7 +1928,9 @@ function generateInvoicePrint(invoice) {
     </div>
   `;
 
+  setTimeout(() => {
   window.print();
+}, 500);
 }
 $('salesInvoiceForm').addEventListener('submit', async function(e) {
   e.preventDefault();
