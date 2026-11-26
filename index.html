@@ -1812,8 +1812,16 @@ function calculateInvoiceTotal() {
 }
 
 $('addInvoiceItem').addEventListener('click', async function() {
-  await loadInvoiceInventory();
-  addInvoiceItemRow();
+  const message = $('invoiceMessage');
+  message.textContent = 'Loading inventory...';
+
+  try {
+    await loadInvoiceInventory();
+    message.textContent = 'Items loaded: ' + invoiceItemsData.length;
+    addInvoiceItemRow();
+  } catch (error) {
+    message.textContent = 'Inventory error: ' + error.message;
+  }
 });
   
 $('enableInvoiceGST').addEventListener('change', function() {
