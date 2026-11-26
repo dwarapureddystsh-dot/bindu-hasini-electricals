@@ -1649,6 +1649,7 @@ showDashboard = async function(user) {
 
 let invoiceItemsData = [];
 let customerInvoiceData = [];
+  loadInvoiceInventory();
 
 async function loadInvoiceCustomers() {
   const { data, error } = await supabase
