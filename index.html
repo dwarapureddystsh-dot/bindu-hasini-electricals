@@ -1679,7 +1679,7 @@ async function loadInvoiceCustomers() {
 async function loadInvoiceInventory() {
   const { data, error } = await supabase
     .from('inventory_items')
-    .select('id,item_name,quantity,is_active,selling_price')
+    .select('id,item_name,quantity,selling_price')
     .eq('is_active', true)
     .order('item_name');
 
