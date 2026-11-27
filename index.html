@@ -487,6 +487,9 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     <button type="button" id="downloadReportPDF">
   Download Report PDF
     </button>
+    <button type="button" id="downloadReportExcel">
+  Download Report Excel
+    </button>
 
   <div id="profitLossResults">
     <p>Total Sales: ₹<strong id="reportSales">0.00</strong></p>
@@ -2503,6 +2506,50 @@ $('generateReport').addEventListener(
   reportWindow.document.close();
   reportWindow.focus();
   reportWindow.print();
+});
+  $('downloadReportExcel').addEventListener('click', function() {
+  const fromDate = $('reportFromDate').value;
+  const toDate = $('reportToDate').value;
+
+  if (!fromDate || !toDate) {
+    alert('Please generate a report first.');
+    return;
+  }
+
+  const rows = [
+    ['BINDU HASINI ELECTRICALS'],
+    ['Profit & Loss Report'],
+    ['From Date', fromDate],
+    ['To Date', toDate],
+    [],
+    ['Details', 'Amount'],
+    ['Total Sales', $('reportSales').textContent],
+    ['Payments Received', $('reportPayments').textContent],
+    ['Pending Balance', $('reportBalance').textContent],
+    ['Total Purchases', $('reportPurchases').textContent],
+    ['Total Expenses', $('reportExpenses').textContent],
+    ['Net Profit / Loss', $('reportProfit').textContent]
+  ];
+
+  const csv = rows.map(row =>
+    row.map(value =>
+      '"' + String(value ?? '').replace(/"/g, '""') + '"'
+    ).join(',')
+  ).join('\r\n');
+
+  const blob = new Blob(
+    ['\uFEFF' + csv],
+    { type: 'text/csv;charset=utf-8;' }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = 'Bindu-Hasini-Profit-Loss-Report.csv';
+  link.click();
+
+  URL.revokeObjectURL(url);
 });
 </script>
 </body>
