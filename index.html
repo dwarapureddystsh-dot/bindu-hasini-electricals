@@ -2564,9 +2564,15 @@ $('generateReport').addEventListener(
 });
   async function loadMonthlyBusinessSummary() {
   const now = new Date();
-  const fromDate = new Date(
-    now.getFullYear(), now.getMonth(), 1
-  ).toLocaleDateString('en-CA');
+  const year = now.getFullYear();
+const month = String(now.getMonth() + 1).padStart(2, '0');
+
+const fromDate = year + '-' + month + '-01';
+
+const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+
+const toDate = year + '-' + month + '-' +
+  String(lastDay).padStart(2, '0');
 
   const toDate = new Date(
     now.getFullYear(), now.getMonth() + 1, 0
