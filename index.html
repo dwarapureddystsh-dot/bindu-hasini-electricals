@@ -414,6 +414,63 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   </section>
   
 <section class="panel">
+  <h3>Business Expenses</h3>
+
+<form id="expenseForm">
+
+  <label>Expense Category</label>
+  <select id="expenseCategory" required>
+    <option value="">Select Category</option>
+    <option>Fuel / Petrol</option>
+    <option>Travel</option>
+    <option>Food</option>
+    <option>Room Rent</option>
+    <option>Electricity</option>
+    <option>Machine Repair</option>
+    <option>Spare Parts</option>
+    <option>Office Expenses</option>
+    <option>Other</option>
+  </select>
+
+  <label>Amount</label>
+  <input type="number" id="expenseAmount" min="0.01" step="0.01" required>
+
+  <label>Expense Date</label>
+  <input type="date" id="expenseDate" required>
+
+  <label>Payment Method</label>
+  <select id="expenseMethod" required>
+    <option>Cash</option>
+    <option>UPI</option>
+    <option>Bank</option>
+  </select>
+
+  <label>Description</label>
+  <input type="text" id="expenseDescription" placeholder="Expense details">
+
+  <button type="submit">Save Expense</button>
+</form>
+
+<p id="expenseMessage"></p>
+
+<h3>Expense History</h3>
+
+<div class="tablewrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Category</th>
+        <th>Amount</th>
+        <th>Method</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody id="expenseHistoryRows">
+      <tr><td colspan="5">No expenses yet.</td></tr>
+    </tbody>
+  </table>
+</div>
   <h3>Sales & Invoice Management</h3>
 
   <form id="salesInvoiceForm">
@@ -2199,6 +2256,80 @@ showDashboard = async function(user) {
   }
 };
     
+async function loadBusinessExpenses() {
+  const { data, error } = await supabase
+    .from('business_expenses')
+    .select('*')
+    .order('expense_date', { ascending: false });
+
+  const tbody = $('expenseHistoryRows');
+
+  if (error) {
+    tbody.innerHTML =
+      '<tr><td colspan="5">Expense load failed: ' +
+      error.message + '</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  if (!data || data.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5">No expenses yet.</td></tr>';
+    return;
+  }
+
+  data.forEach(expense => {
+    const tr = document.createElement('tr');
+
+    [
+      expense.expense_date,
+      expense.category,
+      '₹' + Number(expense.amount).toFixed(2),
+      expense.payment_method,
+      expense.description || '-'
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+$('expenseDate').value =
+  new Date().toISOString().split('T')[0];
+
+$('expenseForm').addEventListener('submit', async function(event) {
+  event.preventDefault();
+
+  const message = $('expenseMessage');
+  message.textContent = 'Saving expense...';
+
+  const { error } = await supabase
+    .from('business_expenses')
+    .insert({
+      category: $('expenseCategory').value,
+      amount: Number($('expenseAmount').value),
+      expense_date: $('expenseDate').value,
+      payment_method: $('expenseMethod').value,
+      description: $('expenseDescription').value.trim()
+    });
+
+  if (error) {
+    message.textContent = 'Expense save failed: ' + error.message;
+    return;
+  }
+
+  message.textContent = 'Expense saved successfully!';
+  this.reset();
+
+  $('expenseDate').value =
+    new Date().toISOString().split('T')[0];
+
+  await loadBusinessExpenses();
+});
 </script>
 </body>
 </html>
