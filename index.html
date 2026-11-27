@@ -75,6 +75,33 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     text-align: left;
   }
 }
+  .module-navigation {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 12px 0;
+  margin-bottom: 15px;
+  white-space: nowrap;
+}
+
+.module-navigation button {
+  flex: 0 0 auto;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #1e3a5f;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.module-navigation button:hover {
+  background: #2563eb;
+}
+
+.module-navigation button.active {
+  background: #16a34a;
+}
 </style>
 </head>
 <body>
@@ -99,6 +126,19 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 <button id="logout" class="secondary">Logout</button>
 </div>
 <p id="welcome"></p>
+  <div id="moduleNavigation" class="module-navigation">
+  <button type="button" data-module="dashboardHome">🏠 Dashboard</button>
+  <button type="button" data-module="customersModule">👥 Customers</button>
+  <button type="button" data-module="enquiriesModule">📩 Enquiries</button>
+  <button type="button" data-module="serviceJobsModule">🛠️ Service Jobs</button>
+  <button type="button" data-module="inventoryModule">📦 Inventory</button>
+  <button type="button" data-module="stockModule">📊 Stock</button>
+  <button type="button" data-module="purchasesModule">🛒 Purchases</button>
+  <button type="button" data-module="suppliersModule">🏭 Suppliers</button>
+  <button type="button" data-module="salesModule">🧾 Sales & Invoices</button>
+  <button type="button" data-module="expensesModule">💰 Expenses</button>
+  <button type="button" data-module="reportsModule">📈 Reports</button>
+  </div>
 <section class="panel">
   <h3>Monthly Business Summary</h3>
 
@@ -224,7 +264,7 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     <strong id="lowStockCount">0</strong>
   </div>
   </div>
-
+<div id="customersModule">
 <section class="panel">
 <h3>Customers Management</h3>
 <p>Add and manage your business customers.</p>
@@ -255,6 +295,8 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 </table>
 </div>
 </section>
+</div>
+  <div id="enquiriesModule">
 <section class="panel">
   <h3>Enquiries Management</h3>
 
@@ -293,6 +335,8 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
 </section>
+  </div>
+  <div id="serviceJobsModule">
 <section class="panel">
   <h3>Service Jobs Management</h3>
 
@@ -337,6 +381,8 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
 </section>
+    </div>
+<div id="inventoryModule">
   <section class="panel">
   <h3>Inventory Management</h3>
 
@@ -383,9 +429,10 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
         <tr><td colspan="7">No inventory items yet.</td></tr>
       </tbody>
     </table>
-  </div>
   </section>
-  <section class="panel">
+</div>
+<div id="stockModule">
+<section class="panel">
   <h3>Stock In / Stock Out</h3>
 
   <form id="stockMovementForm">
@@ -417,7 +464,7 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 
   <p id="stockMessage"></p>
   </section>
-  <section class="panel">
+  
   <h3>Stock Movement History</h3>
 
   <input
@@ -444,6 +491,8 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
   </section>
+</div>
+  <div id="purchasesModule">
   <section class="panel">
   <h3>Purchase Management</h3>
 
@@ -485,43 +534,7 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </table>
   </div>
   </section>
-  <section class="panel">
-  <h3>Supplier Management</h3>
-
-  <form id="supplierForm">
-    <input id="supplierNameManage" placeholder="Supplier Name" required>
-    <input id="supplierPhoneManage" placeholder="Phone Number">
-    <input id="supplierEmailManage" type="email" placeholder="Email">
-    <textarea id="supplierAddressManage" placeholder="Address"></textarea>
-
-    <button type="submit">Save Supplier</button>
-  </form>
-
-  <p id="supplierMessageManage"></p>
-
-  <input
-    id="supplierSearch"
-    placeholder="Search suppliers by name or phone"
-  >
-
-  <div class="tablewrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Supplier</th>
-          <th>Phone</th>
-          <th>Email</th>
-          <th>Address</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="supplierRowsManage">
-        <tr><td colspan="5">No suppliers yet.</td></tr>
-      </tbody>
-    </table>
-  </div>
-  </section>
-  
+  Supplier Management
 <section class="panel">
   <h3>Business Expenses</h3>
 
