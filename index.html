@@ -109,6 +109,7 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   <h3>Monthly Profit / Loss: ₹<strong id="monthlyProfit">0.00</strong></h3>
 
   <p id="monthlySummaryMessage"></p>
+    <div id="monthlyBusinessChart"></div>
   </section>
 <div class="grid">
 <div class="card"><span>Total Customers</span><strong id="customerCount">0</strong></div>
@@ -2634,7 +2635,119 @@ const originalLoadBusinessExpenses = loadBusinessExpenses;
 loadBusinessExpenses = async function() {
   await originalLoadBusinessExpenses();
   await loadMonthlyBusinessSummary();
+  await loadMonthlyBusinessChart();
 };
+  async function loadMonthlyBusinessChart() {
+  const chart = $('monthlyBusinessChart');
+  chart.innerHTML = 'Loading chart...';
+
+  const now = new Date();
+  const start = new Date(
+    now.getFullYear(), now.getMonth() - 5, 1
+  );
+
+  const dateString = date =>
+    date.getFullYear() + '-' +
+    String(date.getMonth() + 1).padStart(2, '0') + '-' +
+    String(date.getDate()).padStart(2, '0');
+
+  const fromDate = dateString(start);
+  const toDate = dateString(now);
+
+  const results = await Promise.all([
+    supabase.from('documents')
+      .select('document_date,total_amount')
+      .eq('document_type', 'invoice')
+      .gte('document_date', fromDate)
+      .lte('document_date', toDate),
+
+    supabase.from('purchases')
+      .select('purchase_date,total_amount')
+      .gte('purchase_date', fromDate)
+      .lte('purchase_date', toDate),
+
+    supabase.from('business_expenses')
+      .select('expense_date,amount')
+      .gte('expense_date', fromDate)
+      .lte('expense_date', toDate)
+  ]);
+
+  const failed = results.find(result => result.error);
+
+  if (failed) {
+    chart.textContent = 'Chart error: ' + failed.error.message;
+    return;
+  }
+
+  const months = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(
+      now.getFullYear(), now.getMonth() - i, 1
+    );
+
+    const key = dateString(d).slice(0, 7);
+
+    months.push({
+      key,
+      name: d.toLocaleDateString('en-IN', {
+        month: 'short',
+        year: '2-digit'
+      }),
+      sales: 0,
+      purchases: 0,
+      expenses: 0
+    });
+  }
+
+  results[0].data.forEach(row => {
+    const m = months.find(x => x.key === row.document_date.slice(0, 7));
+    if (m) m.sales += Number(row.total_amount || 0);
+  });
+
+  results[1].data.forEach(row => {
+    const m = months.find(x => x.key === row.purchase_date.slice(0, 7));
+    if (m) m.purchases += Number(row.total_amount || 0);
+  });
+
+  results[2].data.forEach(row => {
+    const m = months.find(x => x.key === row.expense_date.slice(0, 7));
+    if (m) m.expenses += Number(row.amount || 0);
+  });
+
+  const maxValue = Math.max(
+    1,
+    ...months.flatMap(m => [m.sales, m.purchases, m.expenses])
+  );
+
+  chart.innerHTML = '<h4>Last 6 Months</h4>';
+
+  months.forEach(m => {
+    const profit = m.sales - m.purchases - m.expenses;
+    const section = document.createElement('div');
+
+    section.style.marginBottom = '18px';
+
+    section.innerHTML = `
+      <strong>${m.name}</strong>
+      <p>Sales: ₹${m.sales.toFixed(2)}</p>
+      <div style="background:#eee;height:12px;border-radius:6px">
+        <div style="background:#2196f3;height:12px;width:${m.sales / maxValue * 100}%;border-radius:6px"></div>
+      </div>
+      <p>Purchases: ₹${m.purchases.toFixed(2)}</p>
+      <div style="background:#eee;height:12px;border-radius:6px">
+        <div style="background:#f59e0b;height:12px;width:${m.purchases / maxValue * 100}%;border-radius:6px"></div>
+      </div>
+      <p>Expenses: ₹${m.expenses.toFixed(2)}</p>
+      <div style="background:#eee;height:12px;border-radius:6px">
+        <div style="background:#e53935;height:12px;width:${m.expenses / maxValue * 100}%;border-radius:6px"></div>
+      </div>
+      <p><strong>Profit / Loss: ₹${profit.toFixed(2)}</strong></p>
+    `;
+
+    chart.appendChild(section);
+  });
+  }
 </script>
 </body>
 </html>
