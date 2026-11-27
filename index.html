@@ -2741,6 +2741,8 @@ loadBusinessExpenses = async function() {
   await loadMonthlyBusinessChart();
   await loadCustomerOutstandingReport();
   await loadSupplierOutstandingReport();
+  await loadSupplierPaymentOptions();
+await loadSupplierPaymentHistory();
 };
   async function loadMonthlyBusinessChart() {
   const chart = $('monthlyBusinessChart');
