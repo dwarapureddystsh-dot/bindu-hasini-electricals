@@ -2149,7 +2149,37 @@ if (error) {
   await loadInvoiceHistory();
 });
   actionTd.appendChild(viewButton);
+    const historyButton = document.createElement('button');
+historyButton.type = 'button';
+historyButton.textContent = 'Payment History';
+
+historyButton.addEventListener('click', async () => {
+  const { data, error } = await supabase
+    .from('invoice_payments')
+    .select('amount, payment_date, payment_method, notes')
+    .eq('document_id', invoice.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    alert('Payment history error: ' + error.message);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert('No payment history found.');
+    return;
+  }
+
+  const historyText = data.map(payment =>
+    'Amount: ₹' + Number(payment.amount).toFixed(2) +
+    '\nDate: ' + payment.payment_date +
+    '\nMethod: ' + payment.payment_method
+  ).join('\n\n');
+
+  alert(historyText);
+});
     actionTd.appendChild(paymentButton);
+    actionTd.appendChild(historyButton);
   tr.appendChild(actionTd);
   tbody.appendChild(tr);
 });
