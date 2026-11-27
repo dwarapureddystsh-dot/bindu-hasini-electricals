@@ -110,6 +110,32 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 
   <p id="monthlySummaryMessage"></p>
     <div id="monthlyBusinessChart"></div>
+    <section class="panel">
+  <h3>Customer Outstanding Report</h3>
+
+  <p>Total Outstanding: ₹
+    <strong id="totalCustomerOutstanding">0.00</strong>
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Customer</th>
+        <th>Invoice Amount</th>
+        <th>Paid</th>
+        <th>Pending</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="customerOutstandingRows">
+      <tr>
+        <td colspan="5">Loading...</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p id="customerOutstandingMessage"></p>
+    </section>
   </section>
 <div class="grid">
 <div class="card"><span>Total Customers</span><strong id="customerCount">0</strong></div>
@@ -2637,6 +2663,7 @@ loadBusinessExpenses = async function() {
   await originalLoadBusinessExpenses();
   await loadMonthlyBusinessSummary();
   await loadMonthlyBusinessChart();
+  await loadCustomerOutstandingReport();
 };
   async function loadMonthlyBusinessChart() {
   const chart = $('monthlyBusinessChart');
@@ -2748,6 +2775,79 @@ loadBusinessExpenses = async function() {
 
     chart.appendChild(section);
   });
+  }
+  async function loadCustomerOutstandingReport() {
+  const tbody = $('customerOutstandingRows');
+  const message = $('customerOutstandingMessage');
+
+  message.textContent = 'Loading outstanding report...';
+
+  const { data, error } = await supabase
+    .from('documents')
+    .select('customer_id, total_amount, paid_amount, customers(name)')
+    .eq('document_type', 'invoice');
+
+  if (error) {
+    message.textContent =
+      'Report error: ' + error.message;
+    return;
+  }
+
+  const customerTotals = {};
+
+  data.forEach(invoice => {
+    const id = invoice.customer_id;
+    if (!id) return;
+
+    if (!customerTotals[id]) {
+      customerTotals[id] = {
+        name: invoice.customers?.name || 'Unknown',
+        total: 0,
+        paid: 0
+      };
+    }
+
+    customerTotals[id].total +=
+      Number(invoice.total_amount || 0);
+
+    customerTotals[id].paid +=
+      Number(invoice.paid_amount || 0);
+  });
+
+  tbody.innerHTML = '';
+
+  let grandOutstanding = 0;
+
+  Object.values(customerTotals).forEach(customer => {
+    const balance = customer.total - customer.paid;
+    grandOutstanding += balance;
+
+    const tr = document.createElement('tr');
+
+    [
+      customer.name,
+      '₹' + customer.total.toFixed(2),
+      '₹' + customer.paid.toFixed(2),
+      '₹' + balance.toFixed(2),
+      balance <= 0 ? 'Paid' : customer.paid > 0 ? 'Partial' : 'Unpaid'
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  if (Object.keys(customerTotals).length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5">No invoices found.</td></tr>';
+  }
+
+  $('totalCustomerOutstanding').textContent =
+    grandOutstanding.toFixed(2);
+
+  message.textContent = 'Outstanding report loaded successfully!';
   }
 </script>
 </body>
