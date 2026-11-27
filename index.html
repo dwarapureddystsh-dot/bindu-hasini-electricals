@@ -138,7 +138,57 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 
   <p id="supplierOutstandingMessage"></p>
       </section>
+<section class="panel">
+  <h3>Supplier Payment Management</h3>
 
+  <form id="supplierPaymentForm">
+
+    <label>Select Supplier</label>
+    <select id="supplierPaymentSupplier" required>
+      <option value="">Select Supplier</option>
+    </select>
+
+    <label>Payment Amount</label>
+    <input
+      type="number"
+      id="supplierPaymentAmount"
+      min="1"
+      step="0.01"
+      required
+    >
+
+    <label>Payment Method</label>
+    <select id="supplierPaymentMethod" required>
+      <option value="Cash">Cash</option>
+      <option value="UPI">UPI</option>
+      <option value="Bank">Bank</option>
+    </select>
+
+    <label>Notes</label>
+    <input
+      type="text"
+      id="supplierPaymentNotes"
+      placeholder="Optional notes"
+    >
+
+    <button type="submit">Save Supplier Payment</button>
+  </form>
+
+  <p id="supplierPaymentMessage"></p>
+
+  <h3>Supplier Payment History</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Supplier</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Method</th>
+      </tr>
+    </thead>
+    <tbody id="supplierPaymentHistoryRows"></tbody>
+  </table>
+</section>
   <p>Total Outstanding: ₹
     <strong id="totalCustomerOutstanding">0.00</strong>
   </p>
@@ -2942,6 +2992,104 @@ loadBusinessExpenses = async function() {
     grandOutstanding.toFixed(2);
 
   message.textContent = 'Supplier report loaded successfully!';
+  }
+  async function loadSupplierPaymentOptions() {
+  const select = $('supplierPaymentSupplier');
+
+  const { data, error } = await supabase
+    .from('suppliers')
+    .select('id, supplier_name')
+    .order('supplier_name');
+
+  if (error) {
+    $('supplierPaymentMessage').textContent =
+      'Supplier loading error: ' + error.message;
+    return;
+  }
+
+  select.innerHTML = '<option value="">Select Supplier</option>';
+
+  data.forEach(supplier => {
+    const option = document.createElement('option');
+    option.value = supplier.id;
+    option.textContent = supplier.supplier_name;
+    select.appendChild(option);
+  });
+  }
+  $('supplierPaymentForm').addEventListener('submit', async function(event) {
+  event.preventDefault();
+
+  const supplierId = $('supplierPaymentSupplier').value;
+  const amount = Number($('supplierPaymentAmount').value);
+  const method = $('supplierPaymentMethod').value;
+  const notes = $('supplierPaymentNotes').value;
+
+  if (!supplierId || amount <= 0) {
+    alert('Please select supplier and enter valid amount.');
+    return;
+  }
+
+  const { error } = await supabase.rpc(
+    'record_supplier_payment',
+    {
+      p_supplier_id: supplierId,
+      p_amount: amount,
+      p_payment_method: method,
+      p_notes: notes || null
+    }
+  );
+
+  if (error) {
+    $('supplierPaymentMessage').textContent =
+      'Payment failed: ' + error.message;
+    return;
+  }
+
+  $('supplierPaymentMessage').textContent =
+    'Supplier payment saved successfully!';
+
+  $('supplierPaymentForm').reset();
+
+  await loadSupplierOutstandingReport();
+  await loadSupplierPaymentHistory();
+});
+  async function loadSupplierPaymentHistory() {
+  const tbody = $('supplierPaymentHistoryRows');
+
+  const { data, error } = await supabase
+    .from('supplier_payments')
+    .select('amount, payment_date, payment_method, suppliers(supplier_name)')
+    .order('payment_date', { ascending: false });
+
+  if (error) {
+    tbody.innerHTML =
+      '<tr><td colspan="4">Error: ' + error.message + '</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  data.forEach(payment => {
+    const tr = document.createElement('tr');
+
+    [
+      payment.suppliers?.supplier_name || 'Unknown',
+      '₹' + Number(payment.amount).toFixed(2),
+      payment.payment_date,
+      payment.payment_method
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  if (data.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="4">No payments found.</td></tr>';
+  }
   }
 </script>
 </body>
