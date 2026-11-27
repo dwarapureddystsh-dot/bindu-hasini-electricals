@@ -2052,19 +2052,60 @@ async function loadInvoiceHistory() {
   }
 
   data.forEach(invoice => {
-    const tr = document.createElement('tr');
+  const tr = document.createElement('tr');
 
-    [
-      invoice.document_number || '-',
-      customerMap[invoice.customer_id] || 'Customer',
-      invoice.document_date || '-',
-      '₹' + Number(invoice.total_amount || 0).toFixed(2),
-      invoice.status || '-'
-    ].forEach(value => {
-      const td = document.createElement('td');
-      td.textContent = value;
-      tr.appendChild(td);
+  [
+    invoice.document_number || '-',
+    customerMap[invoice.customer_id] || 'Customer',
+    invoice.document_date || '-',
+    '₹' + Number(invoice.total_amount || 0).toFixed(2),
+    invoice.status || '-'
+  ].forEach(value => {
+    const td = document.createElement('td');
+    td.textContent = value;
+    tr.appendChild(td);
+  });
+
+  const actionTd = document.createElement('td');
+  const viewButton = document.createElement('button');
+
+  viewButton.type = 'button';
+  viewButton.textContent = 'View / Print';
+
+  viewButton.addEventListener('click', async () => {
+    const { data: lines, error } = await supabase
+      .from('document_lines')
+      .select('item_description, quantity, unit_price, tax, line_total')
+      .eq('document_id', invoice.id);
+
+    if (error) {
+      alert('Invoice details error: ' + error.message);
+      return;
+    }
+
+    if (!lines || lines.length === 0) {
+      alert('Invoice items not found.');
+      return;
+    }
+
+    generateInvoicePrint({
+      invoiceNumber: invoice.document_number,
+      invoiceDate: invoice.document_date,
+      customerName: customerMap[invoice.customer_id] || 'Customer',
+      items: lines.map(item => ({
+        itemName: item.item_description,
+        quantity: Number(item.quantity),
+        rate: Number(item.unit_price),
+        tax: Number(item.tax),
+        amount: Number(item.line_total)
+      }))
     });
+  });
+
+  actionTd.appendChild(viewButton);
+  tr.appendChild(actionTd);
+  tbody.appendChild(tr);
+});
 
     tbody.appendChild(tr);
   });
