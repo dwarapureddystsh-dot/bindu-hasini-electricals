@@ -99,7 +99,7 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 <button id="logout" class="secondary">Logout</button>
 </div>
 <p id="welcome"></p>
-  <section class="panel">
+<section class="panel">
   <h3>Monthly Business Summary</h3>
 
   <p>Total Sales: ₹<strong id="monthlySales">0.00</strong></p>
@@ -109,10 +109,37 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   <h3>Monthly Profit / Loss: ₹<strong id="monthlyProfit">0.00</strong></h3>
 
   <p id="monthlySummaryMessage"></p>
-    <div id="monthlyBusinessChart"></div>
-    <section class="panel">
+  <div id="monthlyBusinessChart"></div>
+</section>
+
+<section class="panel">
   <h3>Customer Outstanding Report</h3>
-      <section class="panel">
+
+  <p>Total Outstanding: ₹
+    <strong id="totalCustomerOutstanding">0.00</strong>
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Customer</th>
+        <th>Invoice Amount</th>
+        <th>Paid</th>
+        <th>Pending</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="customerOutstandingRows">
+      <tr>
+        <td colspan="5">Loading...</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p id="customerOutstandingMessage"></p>
+</section>
+
+<section class="panel">
   <h3>Supplier Outstanding Report</h3>
 
   <p>Total Supplier Outstanding: ₹
@@ -137,25 +164,20 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   </table>
 
   <p id="supplierOutstandingMessage"></p>
-      </section>
+</section>
+
 <section class="panel">
   <h3>Supplier Payment Management</h3>
 
   <form id="supplierPaymentForm">
-
     <label>Select Supplier</label>
     <select id="supplierPaymentSupplier" required>
       <option value="">Select Supplier</option>
     </select>
 
     <label>Payment Amount</label>
-    <input
-      type="number"
-      id="supplierPaymentAmount"
-      min="1"
-      step="0.01"
-      required
-    >
+    <input type="number" id="supplierPaymentAmount"
+      min="1" step="0.01" required>
 
     <label>Payment Method</label>
     <select id="supplierPaymentMethod" required>
@@ -165,11 +187,8 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     </select>
 
     <label>Notes</label>
-    <input
-      type="text"
-      id="supplierPaymentNotes"
-      placeholder="Optional notes"
-    >
+    <input type="text" id="supplierPaymentNotes"
+      placeholder="Optional notes">
 
     <button type="submit">Save Supplier Payment</button>
   </form>
@@ -189,30 +208,6 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     <tbody id="supplierPaymentHistoryRows"></tbody>
   </table>
 </section>
-  <p>Total Outstanding: ₹
-    <strong id="totalCustomerOutstanding">0.00</strong>
-  </p>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Customer</th>
-        <th>Invoice Amount</th>
-        <th>Paid</th>
-        <th>Pending</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="customerOutstandingRows">
-      <tr>
-        <td colspan="5">Loading...</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <p id="customerOutstandingMessage"></p>
-    </section>
-  </section>
 <div class="grid">
 <div class="card"><span>Total Customers</span><strong id="customerCount">0</strong></div>
 <div class="card"><span>Total Enquiries</span><strong id="enquiryCount">--</strong></div>
