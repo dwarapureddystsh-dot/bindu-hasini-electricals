@@ -2026,7 +2026,7 @@ invoicePrintData.items.push({
 async function loadInvoiceHistory() {
   const { data, error } = await supabase
     .from('documents')
-    .select('id,customer_id,document_number,document_date,total_amount,status')
+    .select('id,customer_id,document_number,document_date,total_amount,status,paid_amount,payment_status')
     .eq('document_type', 'invoice')
     .order('created_at', { ascending: false });
 
@@ -2047,7 +2047,7 @@ async function loadInvoiceHistory() {
 
   if (!data || data.length === 0) {
     tbody.innerHTML =
-      '<tr><td colspan="5">No invoices yet.</td></tr>';
+      '<tr><td colspan="8">No invoices yet.</td></tr>';
     return;
   }
 
@@ -2055,12 +2055,14 @@ async function loadInvoiceHistory() {
   const tr = document.createElement('tr');
 
   [
-    invoice.document_number || '-',
-    customerMap[invoice.customer_id] || 'Customer',
-    invoice.document_date || '-',
-    '₹' + Number(invoice.total_amount || 0).toFixed(2),
-    invoice.status || '-'
-  ].forEach(value => {
+  invoice.document_number || '-',
+  customerMap[invoice.customer_id] || 'Customer',
+  invoice.document_date || '-',
+  '₹' + Number(invoice.total_amount || 0).toFixed(2),
+  '₹' + Number(invoice.paid_amount || 0).toFixed(2),
+  '₹' + (Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0)).toFixed(2),
+  invoice.payment_status || 'Unpaid'
+].forEach(value => {
     const td = document.createElement('td');
     td.textContent = value;
     tr.appendChild(td);
@@ -2101,8 +2103,48 @@ async function loadInvoiceHistory() {
       }))
     });
   });
+const paymentButton = document.createElement('button');
+paymentButton.type = 'button';
+paymentButton.textContent = 'Add Payment';
 
+paymentButton.addEventListener('click', async () => {
+  const total = Number(invoice.total_amount || 0);
+  const paid = Number(invoice.paid_amount || 0);
+  const balance = total - paid;
+
+  if (balance <= 0) {
+    alert('Invoice already fully paid.');
+    return;
+  }
+
+  const amount = Number(prompt('Enter payment amount. Balance: ₹' + balance.toFixed(2)));
+
+  if (!Number.isFinite(amount) || amount <= 0 || amount > balance) {
+    alert('Please enter a valid amount within the balance.');
+    return;
+  }
+
+  const newPaid = paid + amount;
+  const newStatus = newPaid >= total ? 'Paid' : 'Partial';
+
+  const { error } = await supabase
+    .from('documents')
+    .update({
+      paid_amount: newPaid,
+      payment_status: newStatus
+    })
+    .eq('id', invoice.id);
+
+  if (error) {
+    alert('Payment update failed: ' + error.message);
+    return;
+  }
+
+  alert('Payment saved successfully!');
+  await loadInvoiceHistory();
+});
   actionTd.appendChild(viewButton);
+    actionTd.appendChild(paymentButton);
   tr.appendChild(actionTd);
   tbody.appendChild(tr);
 });
