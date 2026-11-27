@@ -2690,6 +2690,7 @@ loadBusinessExpenses = async function() {
   await loadMonthlyBusinessSummary();
   await loadMonthlyBusinessChart();
   await loadCustomerOutstandingReport();
+  await loadSupplierOutstandingReport();
 };
   async function loadMonthlyBusinessChart() {
   const chart = $('monthlyBusinessChart');
