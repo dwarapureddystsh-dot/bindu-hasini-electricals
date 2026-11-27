@@ -2124,21 +2124,26 @@ paymentButton.addEventListener('click', async () => {
     return;
   }
 
-  const newPaid = paid + amount;
-  const newStatus = newPaid >= total ? 'Paid' : 'Partial';
+  const paymentMethod = prompt(
+  'Payment method: Cash / UPI / Bank',
+  'Cash'
+);
 
-  const { error } = await supabase
-    .from('documents')
-    .update({
-      paid_amount: newPaid,
-      payment_status: newStatus
-    })
-    .eq('id', invoice.id);
+if (!paymentMethod) return;
 
-  if (error) {
-    alert('Payment update failed: ' + error.message);
-    return;
+const { error } = await supabase.rpc(
+  'record_invoice_payment',
+  {
+    p_document_id: invoice.id,
+    p_amount: amount,
+    p_payment_method: paymentMethod
   }
+);
+
+if (error) {
+  alert('Payment update failed: ' + error.message);
+  return;
+}
 
   alert('Payment saved successfully!');
   await loadInvoiceHistory();
