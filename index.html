@@ -586,6 +586,9 @@ async function showDashboard(user) {
   $('welcome').textContent = 'Welcome, ' + (profile.full_name || 'Admin');
   await loadCustomers();
   await loadOtherCounts();
+  await loadCustomers();
+  await loadOtherCounts();
+  await loadBusinessExpenses();
 }
 
 async function loadOtherCounts() {
