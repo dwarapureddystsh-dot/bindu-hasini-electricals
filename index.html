@@ -2075,7 +2075,7 @@ async function loadInvoiceHistory() {
   viewButton.addEventListener('click', async () => {
     const { data: lines, error } = await supabase
       .from('document_lines')
-      .select('item_description, quantity, unit_price, tax, line_total')
+      .select('item_description, quantity, unit_price, tax_percent, line_total')
       .eq('document_id', invoice.id);
 
     if (error) {
@@ -2096,7 +2096,7 @@ async function loadInvoiceHistory() {
         itemName: item.item_description,
         quantity: Number(item.quantity),
         rate: Number(item.unit_price),
-        tax: Number(item.tax),
+        tax: Number(item.tax_percent),
         amount: Number(item.line_total)
       }))
     });
