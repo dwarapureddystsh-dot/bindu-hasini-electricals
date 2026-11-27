@@ -112,6 +112,32 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
     <div id="monthlyBusinessChart"></div>
     <section class="panel">
   <h3>Customer Outstanding Report</h3>
+      <section class="panel">
+  <h3>Supplier Outstanding Report</h3>
+
+  <p>Total Supplier Outstanding: ₹
+    <strong id="totalSupplierOutstanding">0.00</strong>
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Supplier</th>
+        <th>Purchase Amount</th>
+        <th>Paid</th>
+        <th>Pending</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="supplierOutstandingRows">
+      <tr>
+        <td colspan="5">Loading...</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p id="supplierOutstandingMessage"></p>
+      </section>
 
   <p>Total Outstanding: ₹
     <strong id="totalCustomerOutstanding">0.00</strong>
@@ -2848,6 +2874,73 @@ loadBusinessExpenses = async function() {
     grandOutstanding.toFixed(2);
 
   message.textContent = 'Outstanding report loaded successfully!';
+  }
+  async function loadSupplierOutstandingReport() {
+  const tbody = $('supplierOutstandingRows');
+  const message = $('supplierOutstandingMessage');
+
+  message.textContent = 'Loading supplier report...';
+
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('supplier_id, total_amount, paid_amount, suppliers(supplier_name)');
+
+  if (error) {
+    message.textContent = 'Report error: ' + error.message;
+    return;
+  }
+
+  const supplierTotals = {};
+
+  data.forEach(purchase => {
+    const id = purchase.supplier_id;
+    if (!id) return;
+
+    if (!supplierTotals[id]) {
+      supplierTotals[id] = {
+        name: purchase.suppliers?.supplier_name || 'Unknown',
+        total: 0,
+        paid: 0
+      };
+    }
+
+    supplierTotals[id].total += Number(purchase.total_amount || 0);
+    supplierTotals[id].paid += Number(purchase.paid_amount || 0);
+  });
+
+  tbody.innerHTML = '';
+  let grandOutstanding = 0;
+
+  Object.values(supplierTotals).forEach(supplier => {
+    const balance = supplier.total - supplier.paid;
+    grandOutstanding += balance;
+
+    const tr = document.createElement('tr');
+
+    [
+      supplier.name,
+      '₹' + supplier.total.toFixed(2),
+      '₹' + supplier.paid.toFixed(2),
+      '₹' + balance.toFixed(2),
+      balance <= 0 ? 'Paid' : supplier.paid > 0 ? 'Partial' : 'Unpaid'
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  if (Object.keys(supplierTotals).length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5">No purchases found.</td></tr>';
+  }
+
+  $('totalSupplierOutstanding').textContent =
+    grandOutstanding.toFixed(2);
+
+  message.textContent = 'Supplier report loaded successfully!';
   }
 </script>
 </body>
