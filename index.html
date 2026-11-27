@@ -484,6 +484,9 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   <button type="button" id="generateReport">
     Generate Report
   </button>
+    <button type="button" id="downloadReportPDF">
+  Download Report PDF
+    </button>
 
   <div id="profitLossResults">
     <p>Total Sales: ₹<strong id="reportSales">0.00</strong></p>
@@ -2442,6 +2445,65 @@ $('expenseForm').addEventListener('submit', async function(event) {
 $('generateReport').addEventListener(
   'click', generateProfitLossReport
 );
+  $('downloadReportPDF').addEventListener('click', function() {
+  const fromDate = $('reportFromDate').value;
+  const toDate = $('reportToDate').value;
+
+  if (!fromDate || !toDate) {
+    alert('Please generate a report first.');
+    return;
+  }
+
+  const reportWindow = window.open('', '_blank');
+
+  if (!reportWindow) {
+    alert('Please allow pop-ups to download PDF.');
+    return;
+  }
+
+  const fields = [
+    ['Total Sales', 'reportSales'],
+    ['Payments Received', 'reportPayments'],
+    ['Pending Balance', 'reportBalance'],
+    ['Total Purchases', 'reportPurchases'],
+    ['Total Expenses', 'reportExpenses'],
+    ['Net Profit / Loss', 'reportProfit']
+  ];
+
+  const rows = fields.map(field =>
+    '<tr><td>' + field[0] + '</td><td>₹' +
+    $(field[1]).textContent + '</td></tr>'
+  ).join('');
+
+  reportWindow.document.write(`
+    <html>
+    <head>
+      <title>Profit and Loss Report</title>
+      <style>
+        body { font-family: Arial; padding: 25px; }
+        h2 { text-align: center; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { border: 1px solid #999; padding: 12px; }
+        th { background: #eee; }
+      </style>
+    </head>
+    <body>
+      <h2>BINDU HASINI ELECTRICALS</h2>
+      <h3>Profit & Loss Report</h3>
+      <p>From: ${fromDate} &nbsp; To: ${toDate}</p>
+      <table>
+        <tr><th>Details</th><th>Amount</th></tr>
+        ${rows}
+      </table>
+      <p>Generated on: ${new Date().toLocaleDateString('en-IN')}</p>
+    </body>
+    </html>
+  `);
+
+  reportWindow.document.close();
+  reportWindow.focus();
+  reportWindow.print();
+});
 </script>
 </body>
 </html>
