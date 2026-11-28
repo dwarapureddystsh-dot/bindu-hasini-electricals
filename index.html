@@ -2884,7 +2884,9 @@ $('quotationForm').addEventListener('submit', async function(e) {
     }
 
     message.textContent = 'Quotation saved successfully!';
-    await loadQuotationHistory();
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+await loadQuotationHistory();
 
 this.reset();
 $('quotationItemRows').innerHTML = '';
@@ -2903,7 +2905,7 @@ $('quotationDate').value =
   if (!tbody) return;
 
   tbody.innerHTML =
-    '<tr><td colspan="4">Loading quotations...</td></tr>';
+    '<tr><td colspan="5">Loading quotations...</td></tr>';
 
   const { data, error } = await supabase
     .from('documents')
@@ -2919,7 +2921,7 @@ $('quotationDate').value =
 
   if (!data || data.length === 0) {
     tbody.innerHTML =
-      '<tr><td colspan="4">No quotations yet.</td></tr>';
+      '<tr><td colspan="5">No quotations yet.</td></tr>';
     return;
   }
 
