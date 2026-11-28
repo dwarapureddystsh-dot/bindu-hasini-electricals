@@ -2849,6 +2849,13 @@ $('quotationForm').addEventListener('submit', async function(e) {
 
     message.textContent = 'Quotation saved successfully!';
 
+this.reset();
+$('quotationItemRows').innerHTML = '';
+calculateQuotationTotal();
+
+$('quotationDate').value =
+  new Date().toISOString().split('T')[0];
+
   } catch (error) {
     message.textContent = 'Quotation failed: ' + error.message;
   }
