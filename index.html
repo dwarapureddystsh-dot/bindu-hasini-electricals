@@ -2999,32 +2999,165 @@ $('quotationDate').value =
 whatsappButton.type = 'button';
 whatsappButton.textContent = 'WhatsApp';
 
-whatsappButton.addEventListener('click', () => {
+whatsappButton.addEventListener('click', async () => {
   if (!customer || !customer.phone) {
     alert('Customer phone number not available.');
     return;
   }
 
-  let phone = String(customer.phone).replace(/\D/g, '');
+  try {
+    const { data: lines, error } = await supabase
+      .from('document_lines')
+      .select('*')
+      .eq('document_id', quotation.id);
 
-  if (phone.length === 10) {
-    phone = '91' + phone;
+    if (error) throw error;
+
+    if (!lines || lines.length === 0) {
+      alert('Quotation items not found.');
+      return;
+    }
+
+    if (!window.jspdf) {
+      throw new Error('PDF library not loaded. Refresh the app.');
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.text('BINDU HASINI ELECTRICALS', 105, y, {
+      align: 'center'
+    });
+
+    y += 10;
+    doc.setFontSize(14);
+    doc.text('CUSTOMER QUOTATION', 105, y, {
+      align: 'center'
+    });
+
+    y += 15;
+    doc.setFontSize(11);
+
+    doc.text('Quotation No: ' + quotation.document_number, 15, y);
+    y += 8;
+    doc.text('Date: ' + quotation.document_date, 15, y);
+    y += 8;
+    doc.text('Customer: ' + customer.name, 15, y);
+    y += 15;
+
+    doc.text('Description', 15, y);
+    doc.text('Qty', 100, y);
+    doc.text('Rate', 125, y);
+    doc.text('GST', 155, y);
+    doc.text('Amount', 195, y, { align: 'right' });
+
+    y += 5;
+    doc.line(15, y, 195, y);
+    y += 8;
+
+    let subtotal = 0;
+    let gstTotal = 0;
+
+    lines.forEach(item => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+
+      const base = Number(item.quantity) * Number(item.unit_price);
+      const gst = base * Number(item.tax_percent) / 100;
+
+      subtotal += base;
+      gstTotal += gst;
+
+      const description = doc.splitTextToSize(
+        item.item_description || 'Item',
+        75
+      );
+
+      doc.text(description, 15, y);
+      doc.text(String(item.quantity), 100, y);
+      doc.text(Number(item.unit_price).toFixed(2), 125, y);
+      doc.text(String(item.tax_percent) + '%', 155, y);
+      doc.text(Number(item.line_total).toFixed(2), 195, y, {
+        align: 'right'
+      });
+
+      y += Math.max(8, description.length * 6);
+    });
+
+    y += 8;
+
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.line(120, y, 195, y);
+    y += 8;
+
+    doc.text('Subtotal: Rs. ' + subtotal.toFixed(2), 195, y, {
+      align: 'right'
+    });
+
+    y += 8;
+    doc.text('GST: Rs. ' + gstTotal.toFixed(2), 195, y, {
+      align: 'right'
+    });
+
+    y += 10;
+    doc.setFontSize(14);
+
+    doc.text(
+      'Grand Total: Rs. ' +
+      Number(quotation.total_amount).toFixed(2),
+      195,
+      y,
+      { align: 'right' }
+    );
+
+    const pdfBlob = doc.output('blob');
+
+    const file = new File(
+      [pdfBlob],
+      quotation.document_number + '.pdf',
+      { type: 'application/pdf' }
+    );
+
+    const phone = String(customer.phone).replace(/\D/g, '');
+    const whatsappPhone =
+      phone.length === 10 ? '91' + phone : phone;
+
+    const message =
+      'Dear ' + customer.name +
+      ',\n\nPlease find attached your quotation.\n\n' +
+      'Quotation No: ' + quotation.document_number +
+      '\nThank you,\nBINDU HASINI ELECTRICALS';
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'Customer Quotation',
+        text: message
+      });
+    } else {
+      doc.save(quotation.document_number + '.pdf');
+
+      window.open(
+        'https://wa.me/' + whatsappPhone +
+        '?text=' + encodeURIComponent(message),
+        '_blank'
+      );
+
+      alert('PDF downloaded. WhatsApp lo PDF manually attach cheyyi.');
+    }
+
+  } catch (error) {
+    alert('Quotation PDF sharing failed: ' + error.message);
   }
-
-  const message =
-    'Dear ' + customer.name + ',\n\n' +
-    'Please find your quotation details:\n' +
-    'Quotation No: ' + quotation.document_number + '\n' +
-    'Date: ' + quotation.document_date + '\n' +
-    'Total Amount: Rs. ' +
-    Number(quotation.total_amount).toFixed(2) +
-    '\n\nThank you,\nBINDU HASINI ELECTRICALS';
-
-  window.open(
-    'https://wa.me/' + phone + '?text=' +
-    encodeURIComponent(message),
-    '_blank'
-  );
 });
 
 actionTd.appendChild(whatsappButton);
