@@ -105,6 +105,33 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   .module-hidden {
   display: none !important;
   }
+  /* Mobile Navigation Improvements */
+
+.module-navigation {
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 10px;
+}
+
+.module-navigation button {
+  min-height: 46px;
+  scroll-snap-align: start;
+  touch-action: manipulation;
+}
+
+@media (max-width: 600px) {
+  .module-navigation {
+    gap: 8px;
+    padding: 10px 0;
+  }
+
+  .module-navigation button {
+    font-size: 13px;
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+}
 </style>
 </head>
 <body>
