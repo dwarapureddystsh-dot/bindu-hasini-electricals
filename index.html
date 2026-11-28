@@ -3232,7 +3232,7 @@ for (let i = 1; i <= pageCount; i++) {
 }
 
     
-
+const pdfBlob = doc.output('blob');
     const file = new File(
       [pdfBlob],
       quotation.document_number + '.pdf',
