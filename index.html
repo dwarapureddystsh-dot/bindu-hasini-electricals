@@ -2503,9 +2503,21 @@ function generateInvoicePrint(invoice) {
     </div>
   `;
 
-  setTimeout(() => {
+  const logo = printArea.querySelector('img');
+
+if (logo) {
+  logo.onload = () => window.print();
+  logo.onerror = () => {
+    alert('Logo loading failed. Check bhe_logo.png file.');
+    window.print();
+  };
+
+  if (logo.complete && logo.naturalWidth > 0) {
+    window.print();
+  }
+} else {
   window.print();
-}, 500);
+}
 }
 $('salesInvoiceForm').addEventListener('submit', async function(e) {
   e.preventDefault();
