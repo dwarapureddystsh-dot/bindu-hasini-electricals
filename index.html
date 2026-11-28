@@ -2457,11 +2457,33 @@ function generateInvoicePrint(invoice) {
 
   printArea.innerHTML = `
     <div class="invoice-print">
-      <h2>BINDU HASINI ELECTRICALS</h2>
-      <p>Vijayawada, Andhra Pradesh</p>
-      <p>Phone: 9966798888</p>
-      <hr>
-      <h3>TAX INVOICE</h3>
+      
+<div style="background:#17365D; color:white; padding:20px; text-align:center; border-bottom:4px solid #D8A84E;">
+  <img src="./bhe_logo.png"
+       alt="BINDU HASINI ELECTRICALS Logo"
+       style="width:100px; height:80px; object-fit:contain; margin-bottom:8px;">
+
+  <h2 style="margin:5px 0; color:white;">
+    BINDU HASINI ELECTRICALS
+  </h2>
+
+  <p style="margin:5px 0; color:white;">
+    RICE MILL MACHINERY | ELECTRICALS | AUTOMATION
+  </p>
+
+  <p style="margin:5px 0; color:white;">
+    Vijayawada, Andhra Pradesh
+  </p>
+
+  <p style="margin:5px 0; color:white;">
+    Phone: 9966798888
+  </p>
+</div>
+
+<h3 style="text-align:center; color:#17365D; margin-top:20px;">
+  TAX INVOICE
+</h3>
+
       <p>Invoice No: ${invoice.invoiceNumber}</p>
       <p>Date: ${invoice.invoiceDate}</p>
       <p>Customer: ${invoice.customerName}</p>
