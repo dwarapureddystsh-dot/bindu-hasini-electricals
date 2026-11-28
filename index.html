@@ -2897,7 +2897,7 @@ $('quotationDate').value =
 
     const tr = document.createElement('tr');
 
-    [
+        [
       quotation.document_number,
       customer ? customer.name : 'Unknown Customer',
       quotation.document_date,
@@ -2908,7 +2908,96 @@ $('quotationDate').value =
       tr.appendChild(td);
     });
 
+    const actionTd = document.createElement('td');
+
+    const viewButton = document.createElement('button');
+    viewButton.type = 'button';
+    viewButton.textContent = 'View / Print';
+
+    viewButton.addEventListener('click', async () => {
+      const { data: lines, error: linesError } = await supabase
+        .from('document_lines')
+        .select('*')
+        .eq('document_id', quotation.id);
+
+      if (linesError) {
+        alert('Could not load quotation items: ' + linesError.message);
+        return;
+      }
+
+      const customerName = customer ? customer.name : 'Unknown Customer';
+
+      const printWindow = window.open('', '_blank');
+
+      if (!printWindow) {
+        alert('Please allow pop-ups to print quotation.');
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Quotation - ${quotation.document_number}</title>
+          <style>
+            body { font-family: Arial; padding: 25px; }
+            h2, p { text-align: center; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+            .total { text-align: right; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <h2>BINDU HASINI ELECTRICALS</h2>
+          <p>Customer Quotation</p>
+          <hr>
+          <p>Quotation No: ${quotation.document_number}</p>
+          <p>Date: ${quotation.document_date}</p>
+          <p>Customer: ${customerName}</p>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Rate</th>
+                <th>GST %</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lines.map(item => `
+                <tr>
+                  <td>${item.item_description}</td>
+                  <td>${item.quantity}</td>
+                  <td>${Number(item.unit_price).toFixed(2)}</td>
+                  <td>${item.tax_percent}%</td>
+                  <td>${Number(item.line_total).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="total">
+            <p>Subtotal: ₹${Number(quotation.total_amount - lines.reduce((s, i) => s + (i.quantity * i.unit_price * i.tax_percent / 100), 0)).toFixed(2)}</p>
+            <p>GST: ₹${lines.reduce((s, i) => s + (i.quantity * i.unit_price * i.tax_percent / 100), 0).toFixed(2)}</p>
+            <h3>Grand Total: ₹${Number(quotation.total_amount).toFixed(2)}</h3>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); };
+          <\/script>
+        </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+    });
+
+    actionTd.appendChild(viewButton);
+    tr.appendChild(actionTd);
+
     tbody.appendChild(tr);
+      
   });
   }
 const previousShowDashboardForInvoices = showDashboard;
