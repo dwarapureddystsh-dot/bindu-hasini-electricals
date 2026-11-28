@@ -1,4 +1,4 @@
-cut8
+rucut8
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -731,13 +731,86 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   </div>
 
   <div id="salesModule">
+    
+<section class="panel">
+  <h3>Customer Quotation Management</h3>
+
+  <form id="quotationForm">
+
+    <label>Customer</label>
+    <select id="quotationCustomer" required>
+      <option value="">Select Customer</option>
+    </select>
+
+    <label>Quotation Number</label>
+    <input id="quotationNumber" placeholder="Quotation Number" required>
+
+    <label>Quotation Date</label>
+    <input id="quotationDate" type="date" required>
+
+    <h4>Quotation Items</h4>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Item Description</th>
+            <th>Qty</th>
+            <th>Rate</th>
+            <th>GST %</th>
+            <th>Amount</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="quotationItemRows"></tbody>
+      </table>
+    </div>
+
+    <button type="button" id="addQuotationItem">
+      + Add Item
+    </button>
+
+    <p>Subtotal: ₹<strong id="quotationSubtotal">0.00</strong></p>
+    <p>GST Amount: ₹<strong id="quotationTax">0.00</strong></p>
+    <h3>Grand Total: ₹<strong id="quotationTotal">0.00</strong></h3>
+
+    <button type="submit">Save Quotation</button>
+    <button type="button" id="downloadQuotationPDF">
+      Download Quotation PDF
+    </button>
+    <button type="button" id="shareQuotationWhatsApp">
+      Share on WhatsApp
+    </button>
+
+  </form>
+
+  <p id="quotationMessage"></p>
+
+  <h3>Quotation History</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Quotation No.</th>
+          <th>Customer</th>
+          <th>Date</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="quotationHistoryRows">
+        <tr><td colspan="4">No quotations yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+    
 <section class="panel">
   <h3>Sales & Invoice Management</h3>
 
   <form id="salesInvoiceForm">
 
     <label>Customer</label>
-    <select id="invoiceCustomer" required>
+     id="invoiceCustomer" required>
       <option value="">Select Customer</option>
     </select>
 
@@ -746,7 +819,7 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
 
     <label>Invoice Date</label>
     <input id="invoiceDate" type="date" required>
-    
+    <select
 <label>
   <input type="checkbox" id="enableInvoiceGST">
   Enable GST for this Invoice
@@ -883,6 +956,12 @@ async function loadCustomers() {
   customerData = data || [];
   $('customerCount').textContent = customerData.length;
   renderCustomers();
+  loadQuotationCustomers();
+  const quotationDateInput = $('quotationDate');
+
+if (quotationDateInput) {
+  quotationDateInput.value = new Date().toISOString().split('T')[0];
+}
 }
 
 function renderCustomers() {
@@ -927,7 +1006,24 @@ function renderCustomers() {
     $('customerRows').appendChild(tr);
   });
 }
+function loadQuotationCustomers() {
+  const select = $('quotationCustomer');
+  if (!select) return;
 
+  select.replaceChildren();
+
+  const option = document.createElement('option');
+  option.value = '';
+  option.textContent = 'Select Customer';
+  select.appendChild(option);
+
+  customerData.forEach(customer => {
+    const option = document.createElement('option');
+    option.value = customer.id;
+    option.textContent = customer.name + (customer.phone ? ' - ' + customer.phone : '');
+    select.appendChild(option);
+  });
+                   }
 $('customerForm').addEventListener('submit', async event => {
   event.preventDefault();
   $('saveCustomer').disabled = true;
