@@ -812,16 +812,22 @@ footer{text-align:center;color:#64748b;font-size:12px;padding:24px}
   <form id="salesInvoiceForm">
 
     <label>Customer</label>
-     id="invoiceCustomer" required>
-      <option value="">Select Customer</option>
-    </select>
+     <label>Customer</label>
+<select id="invoiceCustomer" required>
+  <option value="">Select Customer</option>
+</select>
 
+<label>Invoice Number</label>
+<input id="invoiceNumber" placeholder="Invoice Number" required>
+
+<label>Invoice Date</label>
+<input id="invoiceDate" type="date" required>
     <label>Invoice Number</label>
     <input id="invoiceNumber" placeholder="Invoice Number" required>
 
     <label>Invoice Date</label>
     <input id="invoiceDate" type="date" required>
-    <select
+    
 <label>
   <input type="checkbox" id="enableInvoiceGST">
   Enable GST for this Invoice
