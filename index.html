@@ -2994,6 +2994,39 @@ $('quotationDate').value =
     });
 
     actionTd.appendChild(viewButton);
+    const whatsappButton = document.createElement('button');
+whatsappButton.type = 'button';
+whatsappButton.textContent = 'WhatsApp';
+
+whatsappButton.addEventListener('click', () => {
+  if (!customer || !customer.phone) {
+    alert('Customer phone number not available.');
+    return;
+  }
+
+  let phone = String(customer.phone).replace(/\D/g, '');
+
+  if (phone.length === 10) {
+    phone = '91' + phone;
+  }
+
+  const message =
+    'Dear ' + customer.name + ',\n\n' +
+    'Please find your quotation details:\n' +
+    'Quotation No: ' + quotation.document_number + '\n' +
+    'Date: ' + quotation.document_date + '\n' +
+    'Total Amount: Rs. ' +
+    Number(quotation.total_amount).toFixed(2) +
+    '\n\nThank you,\nBINDU HASINI ELECTRICALS';
+
+  window.open(
+    'https://wa.me/' + phone + '?text=' +
+    encodeURIComponent(message),
+    '_blank'
+  );
+});
+
+actionTd.appendChild(whatsappButton);
     tr.appendChild(actionTd);
 
     tbody.appendChild(tr);
