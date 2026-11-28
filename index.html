@@ -2303,6 +2303,134 @@ $('enableInvoiceGST').addEventListener('change', function() {
 
   calculateInvoiceTotal();
 });
+  function addQuotationItemRow() {
+  const tbody = $('quotationItemRows');
+  const tr = document.createElement('tr');
+
+  const itemCell = document.createElement('td');
+  const itemSelect = document.createElement('select');
+  itemSelect.required = true;
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Select Item';
+  itemSelect.appendChild(defaultOption);
+
+  invoiceItemsData.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.id;
+    option.textContent = item.item_name;
+    itemSelect.appendChild(option);
+  });
+
+  itemCell.appendChild(itemSelect);
+
+  const quantityCell = document.createElement('td');
+  const quantityInput = document.createElement('input');
+  quantityInput.type = 'number';
+  quantityInput.min = '0.01';
+  quantityInput.step = '0.01';
+  quantityInput.placeholder = 'Qty';
+  quantityInput.required = true;
+  quantityCell.appendChild(quantityInput);
+
+  const rateCell = document.createElement('td');
+  const rateInput = document.createElement('input');
+  rateInput.type = 'number';
+  rateInput.min = '0';
+  rateInput.step = '0.01';
+  rateInput.placeholder = 'Rate';
+  rateInput.required = true;
+  rateCell.appendChild(rateInput);
+
+  const taxCell = document.createElement('td');
+  const taxInput = document.createElement('input');
+  taxInput.type = 'number';
+  taxInput.min = '0';
+  taxInput.step = '0.01';
+  taxInput.value = '18';
+  taxCell.appendChild(taxInput);
+
+  const amountCell = document.createElement('td');
+  amountCell.textContent = '0.00';
+
+  const actionCell = document.createElement('td');
+  const removeButton = document.createElement('button');
+  removeButton.type = 'button';
+  removeButton.textContent = 'Remove';
+  removeButton.className = 'danger';
+
+  [itemSelect, quantityInput, rateInput, taxInput].forEach(input => {
+    input.addEventListener('input', calculateQuotationTotal);
+    input.addEventListener('change', calculateQuotationTotal);
+  });
+
+  itemSelect.addEventListener('change', () => {
+    const item = invoiceItemsData.find(i => i.id === itemSelect.value);
+    if (item) {
+      rateInput.value = Number(item.selling_price || 0);
+      calculateQuotationTotal();
+    }
+  });
+
+  removeButton.onclick = () => {
+    tr.remove();
+    calculateQuotationTotal();
+  };
+
+  actionCell.appendChild(removeButton);
+
+  tr.append(
+    itemCell,
+    quantityCell,
+    rateCell,
+    taxCell,
+    amountCell,
+    actionCell
+  );
+
+  tbody.appendChild(tr);
+  calculateQuotationTotal();
+}
+
+function calculateQuotationTotal() {
+  let subtotal = 0;
+  let taxTotal = 0;
+
+  Array.from($('quotationItemRows').rows).forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const quantity = Number(inputs[0].value || 0);
+    const rate = Number(inputs[1].value || 0);
+    const tax = Number(inputs[2].value || 0);
+
+    const base = quantity * rate;
+    const taxAmount = base * tax / 100;
+
+    subtotal += base;
+    taxTotal += taxAmount;
+
+    tr.cells[4].textContent =
+      (base + taxAmount).toFixed(2);
+  });
+
+  $('quotationSubtotal').textContent = subtotal.toFixed(2);
+  $('quotationTax').textContent = taxTotal.toFixed(2);
+  $('quotationTotal').textContent =
+    (subtotal + taxTotal).toFixed(2);
+}
+
+$('addQuotationItem').addEventListener('click', async function() {
+  const message = $('quotationMessage');
+  message.textContent = 'Loading inventory...';
+
+  try {
+    await loadInvoiceInventory();
+    message.textContent = 'Items loaded: ' + invoiceItemsData.length;
+    addQuotationItemRow();
+  } catch (error) {
+    message.textContent = 'Inventory error: ' + error.message;
+  }
+});
   
 function generateInvoicePrint(invoice) {
   const printArea = $('invoicePrintArea');
