@@ -2848,6 +2848,7 @@ $('quotationForm').addEventListener('submit', async function(e) {
     }
 
     message.textContent = 'Quotation saved successfully!';
+    await loadQuotationHistory();
 
 this.reset();
 $('quotationItemRows').innerHTML = '';
@@ -2860,6 +2861,55 @@ $('quotationDate').value =
     message.textContent = 'Quotation failed: ' + error.message;
   }
 });
+  async function loadQuotationHistory() {
+  const tbody = $('quotationHistoryRows');
+
+  if (!tbody) return;
+
+  tbody.innerHTML =
+    '<tr><td colspan="4">Loading quotations...</td></tr>';
+
+  const { data, error } = await supabase
+    .from('documents')
+    .select('id, customer_id, document_number, document_date, total_amount')
+    .eq('document_type', 'quotation')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    tbody.innerHTML =
+      '<tr><td colspan="4">Error: ' + error.message + '</td></tr>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="4">No quotations yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  data.forEach(quotation => {
+    const customer = customerData.find(
+      c => c.id === quotation.customer_id
+    );
+
+    const tr = document.createElement('tr');
+
+    [
+      quotation.document_number,
+      customer ? customer.name : 'Unknown Customer',
+      quotation.document_date,
+      '₹' + Number(quotation.total_amount || 0).toFixed(2)
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+  }
 const previousShowDashboardForInvoices = showDashboard;
 
 showDashboard = async function(user) {
@@ -2869,6 +2919,7 @@ showDashboard = async function(user) {
     await loadInvoiceCustomers();
     await loadInvoiceInventory();
     await loadInvoiceHistory();
+    await loadQuotationHistory();
   }
 };
     
